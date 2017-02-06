@@ -13,13 +13,13 @@ NUM_OF_BYTES = 8
     in 8 - meanning wrong file or problem in encryption'''
 
 
-class WrongFileOrProblemWithEncryption(RuntimeError):
+class WrongDataOrProblemWithEncryption(RuntimeError):
 
     def __init__(self):
         super(
-            WrongFileOrProblemWithEncryption,
+            WrongDataOrProblemWithEncryption,
             self,
-        ).__init__('Wrong file or problem with encryption')
+        ).__init__('Wrong data or problem with encryption')
 
 
 ''' Exception for handeling iv which is not in lenght 8'''
@@ -74,13 +74,13 @@ class MyCipher(object):
             'Q',
             hashlib.sha1(
                 password
-            ).hexdigest()[-8:]
+            ).hexdigest()[-NUM_OF_BYTES:]
         )[0]
         if iv is None:
-            self._iv = os.urandom(8)
+            self._iv = os.urandom(NUM_OF_BYTES)
         else:
-            if not len(iv) == 8:
-                raise WrongIV
+            if not len(iv) == NUM_OF_BYTES:
+                raise WrongIV()
             self._iv = iv
         self._extra_key = struct.unpack('Q', self._iv)[0]
 
@@ -93,7 +93,7 @@ class MyCipher(object):
     def update(self, data):
         self._tail += data
         answer = ''
-        while len(self._tail) > 8:
+        while len(self._tail) > NUM_OF_BYTES:
             tmp, self._tail = self._update(self._tail)
             answer += tmp
         return answer
@@ -101,22 +101,22 @@ class MyCipher(object):
     def doFinal(self, data=''):
         answer = self.update(data)
         if self._encrypt:
-            if len(self._tail) == 8:
+            if len(self._tail) == NUM_OF_BYTES:
                 tmp, self._tail = self._update(self._tail)
                 answer += tmp
             padding = self._tail + os.urandom(
-                7 - len(
+                NUM_OF_BYTES - 1 - len(
                     self._tail,
                 ),
             ) + '%s' % (
-                8 - len(
+                NUM_OF_BYTES - len(
                     self._tail,
                 ),
             )
             answer += self._update(padding)[0]
         else:
-            if not len(self._tail) == 8:
-                raise WrongFileOrProblemWithEncryption
+            if not len(self._tail) == NUM_OF_BYTES:
+                raise WrongDataOrProblemWithEncryption()
             padding = self._update(self._tail)[0]
             answer += padding[:-int(padding[-1])]
         return answer
