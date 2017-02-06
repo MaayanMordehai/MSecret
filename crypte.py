@@ -1,4 +1,5 @@
 
+import errno
 import hashlib
 import os
 import random
@@ -9,6 +10,25 @@ import struct
 NUM_OF_BYTES = 8
 
 
+''' Exception for handeling files to decrypt which are not dividing
+    in 8 - meanning wrong file or problem in encryption'''
+
+
+class WrongFileOrProblemWithEncryption(RuntimeError):
+
+   def __init__(self):
+        super(WrongFileOrProblemWithEncryption, self).__init__('Wrong file or problem with encryption')
+
+
+''' Exception for handeling iv which is not in lenght 8'''
+
+
+class WrongIV(RuntimeError):
+
+   def __init__(self):
+        super(WrongIV, self).__init__('IV lenght must be 8')
+
+        
 '''  Encryption - random 8  bytes of junk + for each 64 bits of data
     xor to: key (last 64 bit of hash password),
     extra_key - the last encrypted 64 bit,
@@ -57,11 +77,13 @@ class MyCipher(object):
         if iv is None:
             self._iv = os.urandom(8)
         else:
-            self._iv = iv
+            if not len(iv) == 8:
+                raise WrongIV
+            self._iv = iv 
         self._extra_key = struct.unpack('Q', self._iv)[0]
 
     def get_iv_lenght(self):
-        return len(self._iv) 
+        return len(self._iv)
 
     def get_iv(self): 
         return self._iv
@@ -91,6 +113,8 @@ class MyCipher(object):
             )
             answer += self._update(padding)[0]
         else:
+            if not len(self._tail) == 8:
+                raise WrongFileOrProblemWithEncryption
             padding = self._update(self._tail)[0]
             answer += padding[:-int(padding[-1])]
         return answer
