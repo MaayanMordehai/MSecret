@@ -53,6 +53,12 @@ def main():
     fd, fd2 = open_files(file_name, delete)
     try:
         c = crypte.MyCipher(password, True)
+        iv_len = c.get_iv_lenght()
+        if iv_len < 16:
+            iv_len_in_str = '0' + str(hex(iv_len))[2]
+        else:
+            iv_len_in_str = str(hex(iv_len))[2:4]
+        my_write(fd2, iv_len_in_str + c.get_iv())
         current_posi = 0
         while True:
             block = read_block(fd, BLOCK_SIZE)
@@ -64,7 +70,7 @@ def main():
                 os.lseek(fd, current_posi, 0)
                 w = ''
                 while len(block) > len(w):
-                     w += struct.pack(
+                    w += struct.pack(
                         'B',
                         0,
                     ) + struct.pack(

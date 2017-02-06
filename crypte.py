@@ -1,5 +1,4 @@
 
-import errno
 import hashlib
 import os
 import random
@@ -16,8 +15,11 @@ NUM_OF_BYTES = 8
 
 class WrongFileOrProblemWithEncryption(RuntimeError):
 
-   def __init__(self):
-        super(WrongFileOrProblemWithEncryption, self).__init__('Wrong file or problem with encryption')
+    def __init__(self):
+        super(
+            WrongFileOrProblemWithEncryption,
+            self,
+        ).__init__('Wrong file or problem with encryption')
 
 
 ''' Exception for handeling iv which is not in lenght 8'''
@@ -25,10 +27,10 @@ class WrongFileOrProblemWithEncryption(RuntimeError):
 
 class WrongIV(RuntimeError):
 
-   def __init__(self):
+    def __init__(self):
         super(WrongIV, self).__init__('IV lenght must be 8')
 
-        
+
 '''  Encryption - random 8  bytes of junk + for each 64 bits of data
     xor to: key (last 64 bit of hash password),
     extra_key - the last encrypted 64 bit,
@@ -44,7 +46,7 @@ class MyCipher(object):
 
     # tail - padding that left in block
     _tail = ''
-    
+
     def _update(self, ciphered):
         first_bytes, rest = ciphered[:NUM_OF_BYTES], ciphered[NUM_OF_BYTES:]
         block = struct.pack(
@@ -65,7 +67,7 @@ class MyCipher(object):
         password,
         encrypt,
         iv=None,
-    ): # MAX IV - FF
+    ):  # MAX IV - FF
         self._encrypt = encrypt
         # key - 64 last bit of password
         self._key = struct.unpack(
@@ -79,13 +81,13 @@ class MyCipher(object):
         else:
             if not len(iv) == 8:
                 raise WrongIV
-            self._iv = iv 
+            self._iv = iv
         self._extra_key = struct.unpack('Q', self._iv)[0]
 
     def get_iv_lenght(self):
         return len(self._iv)
 
-    def get_iv(self): 
+    def get_iv(self):
         return self._iv
 
     def update(self, data):
@@ -104,7 +106,7 @@ class MyCipher(object):
                 answer += tmp
             padding = self._tail + os.urandom(
                 7 - len(
-                self._tail,
+                    self._tail,
                 ),
             ) + '%s' % (
                 8 - len(
@@ -133,8 +135,8 @@ def main():
         for j in i:
             de += c.update(j)
         de += c.doFinal()
-        iv = de[2 : 2 + int(de[0:2])]
-        de = de[int(de[0 : 2]) + 2 :]
+        iv = de[2: 2 + int(de[0:2])]
+        de = de[int(de[0: 2]) + 2:]
         c2 = MyCipher("shachar123", False, iv)
         for n in de:
             a += c2.update(n)

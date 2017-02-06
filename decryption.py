@@ -6,7 +6,6 @@ import os
 import struct
 
 
-FILE_ENCRYPTED_END = '.encrypted'
 BLOCK_SIZE = 1024
 
 
@@ -52,7 +51,19 @@ def main():
     file_name, password, delete = frame.Show_Frame(False)
     fd, fd2 = open_files(file_name)
     try:
-        c = crypte.MyCipher(password, False)
+        c = crypte.MyCipher(
+            password,
+            False,
+            read_block(
+                fd,
+                int(
+                    read_block(
+                        fd,
+                        2,
+                    ), 16,
+                ),
+            ),
+        )
         current_posi = 0
         while True:
             block = read_block(fd, BLOCK_SIZE)
