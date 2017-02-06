@@ -6,7 +6,7 @@ import string
 import struct
 
 
-BLOCK_SIZE = 1024
+NUM_OF_BYTES = 8
 
 
 '''  Encryption - random 8  bytes of junk + for each 64 bits of data
@@ -22,23 +22,23 @@ BLOCK_SIZE = 1024
 
 class MyCipher(object):
 
+    # tail - padding that left in block
     _tail = ''
     
     def _update(self, ciphered):
-        print '\n\n\n%s\n\n\n' % ciphered
-        x, y = ciphered[:8], ciphered[8:]
+        first_bytes, rest = ciphered[:NUM_OF_BYTES], ciphered[NUM_OF_BYTES:]
         block = struct.pack(
             'Q',
             self._key ^ self._extra_key ^ struct.unpack(
                 'Q',
-                x,
+                first_bytes,
             )[0],
         )
         self._extra_key = struct.unpack(
             'Q',
-            block if self._encrypt else x,
+            block if self._encrypt else first_bytes,
         )[0]
-        return block, y
+        return block, rest
 
     def __init__(
         self,
@@ -46,16 +46,14 @@ class MyCipher(object):
         encrypt,
         iv=None,
     ): # MAX IV - FF
-        # key - 64 last bit of password
         self._encrypt = encrypt
+        # key - 64 last bit of password
         self._key = struct.unpack(
             'Q',
             hashlib.sha1(
                 password
             ).hexdigest()[-8:]
         )[0]
-        # tail - padding that left in block
-        # encrypt or decrypt
         if iv is None:
             self._iv = os.urandom(8)
         else:
@@ -72,26 +70,16 @@ class MyCipher(object):
         self._tail += data
         answer = ''
         while len(self._tail) > 8:
-            x, self._tail = self._update(self._tail)
-            print "\n\n\n%s\n\n\n" % self._tail
-            answer += x
-        print "a " + answer
+            tmp, self._tail = self._update(self._tail)
+            answer += tmp
         return answer
 
     def doFinal(self, data=''):
         answer = self.update(data)
-        # padding - 1 to 8 random bytes with last byte implies padding size,
-        # can be 1-8
-        if not self._encrypt:
-            print "td: " + self._tail
-            padding = self._update(self._tail)[0]
-            answer += padding[:-int(padding[-1])]
-            print answer
-        else:
-            print "te: "+self._tail
+        if self._encrypt:
             if len(self._tail) == 8:
-                x, self._tail = self._update(self._tail)
-                answer += x
+                tmp, self._tail = self._update(self._tail)
+                answer += tmp
             padding = self._tail + os.urandom(
                 7 - len(
                 self._tail,
@@ -102,30 +90,13 @@ class MyCipher(object):
                 ),
             )
             answer += self._update(padding)[0]
-        print "ananannana: "+ answer
+        else:
+            padding = self._update(self._tail)[0]
+            answer += padding[:-int(padding[-1])]
         return answer
 
 
 def main():
-    en = ''
-    print "hello"
-    de = ''
-    c = MyCipher("shachar123", True)
-    f = c.update('hhhhhhhh')
-    f += c.doFinal()
-    print "this: %s" % len(f)
-    c2 =  MyCipher("shachar123", False, c.get_iv())
-    f2 = c2.update(f)
-    f2 += c2.doFinal()
-    print ''
-    print ''
-    print ''
-    print ''
-    print "this2: %s" % f2
-    print ''
-    print ''
-    print ''
-    print ''
     for i in ["jksfhg", "hhhhhhhh", "hhh", "q", "akernjsnbdkjgndbweha"]:
         a = ''
         de = ''
@@ -135,19 +106,15 @@ def main():
         else:
             de = str(hex(c.get_iv_lenght()))[2:4]
         de += c.get_iv()
-        print i
         for j in i:
-            print j
             de += c.update(j)
         de += c.doFinal()
-        print "de - en : "+de
         iv = de[2 : 2 + int(de[0:2])]
         de = de[int(de[0 : 2]) + 2 :]
         c2 = MyCipher("shachar123", False, iv)
         for n in de:
             a += c2.update(n)
         a += c2.doFinal()
-        print a
         print a == i
 
 if __name__ == '__main__':
