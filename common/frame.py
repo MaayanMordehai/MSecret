@@ -1,14 +1,13 @@
 
-import wx
 import os
-
-
-''' class Frame to make a window where
-    the user will write what is the file
-    name and what is the password '''
+import wx
 
 
 class Frame(wx.Frame):
+    '''class Frame to make a window where
+    the user will write what is the file
+    name and what is the password 
+    '''
 
     def __init__(self, parent, save):
         self._save = save

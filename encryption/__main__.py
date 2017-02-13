@@ -1,9 +1,11 @@
 
 import argparse
-import crypte
-import frame
 import os
 import struct
+
+
+from ..common import crypte
+from ..common import frame
 
 
 FILE_ENCRYPTED_END = '.encrypted'

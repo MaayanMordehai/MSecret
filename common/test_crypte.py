@@ -34,3 +34,5 @@ class MyCipherTest(unittest.TestCase):
             c = crypte.MyCipher('password', False, '12345678')
             c.update('hello ')
             c.doFinal('world')
+
+

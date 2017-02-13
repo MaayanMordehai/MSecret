@@ -9,11 +9,10 @@ import struct
 NUM_OF_BYTES = 8
 
 
-''' Exception for handeling files to decrypt which are not dividing
-    in 8 - meanning wrong file or problem in encryption'''
-
-
 class WrongDataOrProblemWithEncryption(RuntimeError):
+    '''Exception for handeling files to decrypt which are not dividing
+    in 8 - meanning wrong file or problem in encryption
+    '''
 
     def __init__(self):
         super(
@@ -22,16 +21,36 @@ class WrongDataOrProblemWithEncryption(RuntimeError):
         ).__init__('Wrong data or problem with encryption')
 
 
-''' Exception for handeling iv which is not in lenght 8'''
-
-
 class WrongIV(RuntimeError):
+    '''Exception for handeling iv which is not in lenght 8'''
 
     def __init__(self):
         super(WrongIV, self).__init__('IV lenght must be 8')
 
+'''''
+class StructDefine(object):
 
-'''  Encryption - random 8  bytes of junk + for each 64 bits of data
+    _64BITSTRUCT = struct.Struct('Q')
+
+    def __init__(self):
+        self._
+
+
+    
+    @property
+    def bitstruct(self, string):
+        try:
+            return self.pack(string)
+        except Exception:
+            raise ValueError("lenght string must be 8 (8 bytes to 64 bits)")
+
+    @property
+    def bytesstruct(self, num):
+        return self.unpack(num)
+'''
+
+class MyCipher(object):
+    '''Encryption - random 8  bytes of junk + for each 64 bits of data
     xor to: key (last 64 bit of hash password),
     extra_key - the last encrypted 64 bit,
     64 bit from data. at the end if data % 8 != 0
@@ -39,10 +58,8 @@ class WrongIV(RuntimeError):
     last byte is a num that says how much bytes of junk there is
     if data % 8 == 0 we will add 8 bytes - junk and last will be 8
     Decryption - remove junk, xor for same as Encryption,
-    and removing the junk of last 8 bytes.'''
-
-
-class MyCipher(object):
+    and removing the junk of last 8 bytes.
+    '''
 
     # tail - padding that left in block
     _tail = ''
@@ -120,28 +137,3 @@ class MyCipher(object):
             padding = self._update(self._tail)[0]
             answer += padding[:-int(padding[-1])]
         return answer
-
-
-def main():
-    for i in ["jksfhg", "hhhhhhhh", "hhh", "q", "akernjsnbdkjgndbweha"]:
-        a = ''
-        de = ''
-        c = MyCipher("shachar123", True)
-        if c.get_iv_lenght() < 16:
-            de = '0' + str(hex(c.get_iv_lenght()))[2]
-        else:
-            de = str(hex(c.get_iv_lenght()))[2:4]
-        de += c.get_iv()
-        for j in i:
-            de += c.update(j)
-        de += c.doFinal()
-        iv = de[2: 2 + int(de[0:2])]
-        de = de[int(de[0: 2]) + 2:]
-        c2 = MyCipher("shachar123", False, iv)
-        for n in de:
-            a += c2.update(n)
-        a += c2.doFinal()
-        print a == i
-
-if __name__ == '__main__':
-    main()
