@@ -27,27 +27,6 @@ class WrongIV(RuntimeError):
     def __init__(self):
         super(WrongIV, self).__init__('IV lenght must be 8')
 
-'''''
-class StructDefine(object):
-
-    _64BITSTRUCT = struct.Struct('Q')
-
-    def __init__(self):
-        self._
-
-
-    
-    @property
-    def bitstruct(self, string):
-        try:
-            return self.pack(string)
-        except Exception:
-            raise ValueError("lenght string must be 8 (8 bytes to 64 bits)")
-
-    @property
-    def bytesstruct(self, num):
-        return self.unpack(num)
-'''
 
 class MyCipher(object):
     '''Encryption - random 8  bytes of junk + for each 64 bits of data
@@ -63,18 +42,16 @@ class MyCipher(object):
 
     # tail - padding that left in block
     _tail = ''
+    _64bitstruct = struct.Struct('Q')
 
     def _update(self, ciphered):
         first_bytes, rest = ciphered[:NUM_OF_BYTES], ciphered[NUM_OF_BYTES:]
-        block = struct.pack(
-            'Q',
-            self._key ^ self._extra_key ^ struct.unpack(
-                'Q',
+        block = self._64bitstruct.pack(
+            self._key ^ self._extra_key ^ self._64bitstruct.unpack(
                 first_bytes,
             )[0],
         )
-        self._extra_key = struct.unpack(
-            'Q',
+        self._extra_key = self._64bitstruct.unpack(
             block if self._encrypt else first_bytes,
         )[0]
         return block, rest
@@ -87,8 +64,7 @@ class MyCipher(object):
     ):  # MAX IV - FF
         self._encrypt = encrypt
         # key - 64 last bit of password
-        self._key = struct.unpack(
-            'Q',
+        self._key = self._64bitstruct.unpack(
             hashlib.sha1(
                 password
             ).hexdigest()[-NUM_OF_BYTES:]
@@ -99,7 +75,7 @@ class MyCipher(object):
             if not len(iv) == NUM_OF_BYTES:
                 raise WrongIV()
             self._iv = iv
-        self._extra_key = struct.unpack('Q', self._iv)[0]
+        self._extra_key = self._64bitstruct.unpack(self._iv)[0]
 
     def get_iv_lenght(self):
         return len(self._iv)
