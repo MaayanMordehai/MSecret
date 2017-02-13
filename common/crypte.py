@@ -6,9 +6,6 @@ import string
 import struct
 
 
-NUM_OF_BYTES = 8
-
-
 class WrongDataOrProblemWithEncryption(RuntimeError):
     '''Exception for handeling files to decrypt which are not dividing
     in 8 - meanning wrong file or problem in encryption
@@ -44,8 +41,9 @@ class MyCipher(object):
     _tail = ''
     _64bitstruct = struct.Struct('Q')
 
+
     def _update(self, ciphered):
-        first_bytes, rest = ciphered[:NUM_OF_BYTES], ciphered[NUM_OF_BYTES:]
+        first_bytes, rest = ciphered[:self._64bitstruct.size], ciphered[self._64bitstruct.size:]
         block = self._64bitstruct.pack(
             self._key ^ self._extra_key ^ self._64bitstruct.unpack(
                 first_bytes,
@@ -67,26 +65,28 @@ class MyCipher(object):
         self._key = self._64bitstruct.unpack(
             hashlib.sha1(
                 password
-            ).hexdigest()[-NUM_OF_BYTES:]
+            ).hexdigest()[-self._64bitstruct.size:]
         )[0]
         if iv is None:
-            self._iv = os.urandom(NUM_OF_BYTES)
+            self._iv = os.urandom(self._64bitstruct.size)
         else:
-            if not len(iv) == NUM_OF_BYTES:
+            if not len(iv) == self._64bitstruct.size:
                 raise WrongIV()
             self._iv = iv
         self._extra_key = self._64bitstruct.unpack(self._iv)[0]
 
-    def get_iv_lenght(self):
-        return len(self._iv)
+    @property
+    def iv_lenght(self):
+        return self._64bitstruct.size
 
-    def get_iv(self):
+    @property
+    def iv(self):
         return self._iv
 
     def update(self, data):
         self._tail += data
         answer = ''
-        while len(self._tail) > NUM_OF_BYTES:
+        while len(self._tail) > self._64bitstruct.size:
             tmp, self._tail = self._update(self._tail)
             answer += tmp
         return answer
@@ -94,21 +94,21 @@ class MyCipher(object):
     def doFinal(self, data=''):
         answer = self.update(data)
         if self._encrypt:
-            if len(self._tail) == NUM_OF_BYTES:
+            if len(self._tail) == self._64bitstruct.size:
                 tmp, self._tail = self._update(self._tail)
                 answer += tmp
             padding = self._tail + os.urandom(
-                NUM_OF_BYTES - 1 - len(
+                self._64bitstruct.size - 1 - len(
                     self._tail,
                 ),
             ) + '%s' % (
-                NUM_OF_BYTES - len(
+                self._64bitstruct.size - len(
                     self._tail,
                 ),
             )
             answer += self._update(padding)[0]
         else:
-            if not len(self._tail) == NUM_OF_BYTES:
+            if not len(self._tail) == self._64bitstruct.size:
                 raise WrongDataOrProblemWithEncryption()
             padding = self._update(self._tail)[0]
             answer += padding[:-int(padding[-1])]
