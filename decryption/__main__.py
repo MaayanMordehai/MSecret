@@ -66,7 +66,6 @@ def main():
                 ),
             ),
         )
-        current_posi = 0
         while True:
             block = read_block(fd, BLOCK_SIZE)
             if not block:

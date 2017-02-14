@@ -1,6 +1,7 @@
 
 import argparse
 import os
+import random
 import struct
 
 
@@ -49,40 +50,48 @@ def open_files(file_name, delete):
     )
     return fd, fd2
 
+def write_all_file(len_file, fd, what_to_write, block_size=BLOCK_SIZE):
+    os.lseek(fd, 0, 0)
+    tmp = tmp2 = len_file
+    while tmp > 0:
+        if tmp2 > BLOCK_SIZE:
+            tmp2 = BLOCK_SIZE
+        my_write(fd, what_to_write*tmp2)
+        tmp2 = tmp = tmp - tmp2
+
+def handel_iv(cipher, fd2):
+    if cipher.iv_lenght < 16:
+        iv_len_in_str = '0' + str(hex(cipher.iv_lenght))[2]
+    else:
+        iv_len_in_str = str(hex(cipher.iv_lenght))[2:4]
+    my_write(fd2, iv_len_in_str + cipher.iv)
+
 
 def main():
     file_name, password, delete = frame.Show_Frame(True)
     fd, fd2 = open_files(file_name, delete)
+    if delete:
+        len_file = 0
     try:
         c = crypte.MyCipher(password, True)
-        if c.iv_lenght < 16:
-            iv_len_in_str = '0' + str(hex(c.iv_lenght))[2]
-        else:
-            iv_len_in_str = str(hex(c.iv_lenght))[2:4]
-        my_write(fd2, iv_len_in_str + c.iv)
-        current_posi = 0
+        handel_iv(c, fd2)
         while True:
             block = read_block(fd, BLOCK_SIZE)
+            if delete:
+                len_file += len(block)
             if not block:
                 break
             my_write(fd2, c.update(block))
-            if delete:
-                end_posi = os.lseek(fd, 0, os.SEEK_CUR)
-                os.lseek(fd, current_posi, 0)
-                w = ''
-                while len(block) > len(w):
-                    w += struct.pack(
-                        'B',
-                        0,
-                    ) + struct.pack(
-                        'B',
-                        0xff,
-                    ) + os.urandom(6)
-                if len(w) > len(block):
-                    w = w[:len(block) - len(w)]
-                my_write(fd, w)
-                current_posi = os.lseek(fd, 0, os.SEEK_CUR)
         my_write(fd2, c.doFinal())
+
+        if delete:
+            bitstruct = struct.Struct('B')
+            for i in range(16):
+                st = ''
+                rand = random.randint(0,255)
+                write_all_file(len_file, fd, bitstruct.pack(0))
+                write_all_file(len_file, fd, bitstruct.pack(0xff))
+                write_all_file(len_file, fd, bitstruct.pack(rand))
 
     finally:
         os.close(fd)
