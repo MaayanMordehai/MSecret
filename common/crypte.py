@@ -100,7 +100,7 @@ class MyCipher(object):
             padding = self._tail + os.urandom(
                 self._64bitstruct.size - 1 - len(
                     self._tail,
-                ),
+                )
             ) + '%s' % (
                 self._64bitstruct.size - len(
                     self._tail,
