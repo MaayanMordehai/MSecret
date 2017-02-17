@@ -41,9 +41,9 @@ class MyCipher(object):
     _tail = ''
     _64bitstruct = struct.Struct('Q')
 
-
     def _update(self, ciphered):
-        first_bytes, rest = ciphered[:self._64bitstruct.size], ciphered[self._64bitstruct.size:]
+        first_bytes = ciphered[:self._64bitstruct.size]
+        rest = ciphered[self._64bitstruct.size:]
         block = self._64bitstruct.pack(
             self._key ^ self._extra_key ^ self._64bitstruct.unpack(
                 first_bytes,
@@ -100,7 +100,7 @@ class MyCipher(object):
             padding = self._tail + os.urandom(
                 self._64bitstruct.size - 1 - len(
                     self._tail,
-                )
+                ),
             ) + '%s' % (
                 self._64bitstruct.size - len(
                     self._tail,

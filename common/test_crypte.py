@@ -6,8 +6,8 @@ import unittest
 class MyCipherTest(unittest.TestCase):
 
     def test(self):
-        for p in "maayan", "mordehai", 'pass':
-            for t in 'plaintext1', 'more', '', '12345678', '123456789', '1', 'nice':
+        for p in "maayan", "mordehai":
+            for t in 'plaintext1', 'more', '', '12345678', '123456789', '1',"nice":
                 c = crypte.MyCipher(p, True)
                 c2 = crypte.MyCipher(p, False, c.iv)
                 decrypted = c2.update(c.update(t))
