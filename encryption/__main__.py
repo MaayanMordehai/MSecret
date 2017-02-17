@@ -142,8 +142,8 @@ def before_delete(
     for i in range(16):
         st = ''
         rand = random.randint(0, 255)
-        write_all_file(len_file, fd, first_write)  # need to ask alon if inside
-        write_all_file(len_file, fd, second_write)  # or not
+        write_all_file(len_file, fd, first_write)
+        write_all_file(len_file, fd, second_write)
         write_all_file(len_file, fd, bitstruct.pack(rand))
 
 
