@@ -26,9 +26,8 @@ class WrongIV(RuntimeError):
 
 
 class MyCipher(object):
-    '''Encryption - random 8  bytes of junk + for each 64 bits of data
-    xor to: key (last 64 bit of hash password),
-    extra_key - the last encrypted 64 bit,
+    ''' Encryption: xor to: key (last 64 bit of hash password),
+    extra_key - the last encrypted 64 bit (at first iv),
     64 bit from data. at the end if data % 8 != 0
     then junk will fill the missing to 8 bytes,
     last byte is a num that says how much bytes of junk there is
@@ -108,6 +107,7 @@ class MyCipher(object):
             )
             answer += self._update(padding)[0]
         else:
+            print self._tail
             if not len(self._tail) == self._64bitstruct.size:
                 raise WrongDataOrProblemWithEncryption()
             padding = self._update(self._tail)[0]
