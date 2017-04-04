@@ -11,14 +11,15 @@ from ..common import crypte
 from ..common import frame
 
 
-COMMANDS = ['encrypt', 'decrypt', 'delete']
+YES_NO = ['yes', 'no']
 ENCRYPTED_END = '.encrypted'
 BLOCK_SIZE = 1024
 BITSTRUCT = struct.Struct('B')
 FIRST_WRITE = BITSTRUCT.pack(0)
 SECOND_WRITE = BITSTRUCT.pack(0xff)
 
-def parse_args():
+
+def parse_args(COMMANDS):
     """Parse program arguments."""
 
     parser = argparse.ArgumentParser()
@@ -26,31 +27,34 @@ def parse_args():
         '--command',
         required=True,
         type=str,
-        help='%s or %s or %s the sorce file/dir' % (COMMANDS[0], COMMANDS[1], COMMANDS[2]),
+        choices=sorted(COMMANDS.keys()),
+        help='encrypt or decrypt or delete the source file/dir',
     )
     parser.add_argument(
         '--src-file',
         required=True,
         type=str,
-        help='sorce file to encrypt or decrypt or delete (command). required.',
+        help='source file to encrypt or decrypt or delete (command). required.',
     )
     parser.add_argument(
         '--dst-file',
         default=None,
         type=str,
-        help="destination file to write there the encryption or decryption. defualt - sorce file.encrypted",
+        help="destination file to write there the encryption or decryption. default - source file.encrypted",
     )
     parser.add_argument(
         '--delete',
-        default=False,
-        type=bool,
-        help='if you want to delete the sorce file write True, else False, defualt - False.',
+        default=YES_NO[1],
+        type=str,
+        choices=YES_NO,
+        help='if you want to delete the source file write yes, else no, default - no.',
     )
     parser.add_argument(
         '--recursive',
-        default=False,
-        type=bool,
-        help='Do you want to do the command to diractories inside diractories?, if yes write "True" - perform operation recursive, else write False, default - "False"',
+        default=YES_NO[1],
+        type=str,
+        choices=YES_NO,
+        help='Do you want to do the command to diractories inside diractories?, if yes write "yes" - perform operation recursive, else write no, default - "no"',
     )
     parser.add_argument(
         '--passphrase',
@@ -63,64 +67,127 @@ def parse_args():
     return args
 
 
+def delete(args):
+    delete_file_or_dir_properly(args.src_file, args.recursive)
+
+
+def encrypt(args):
+    if args.passphrase is None:
+        password = frame.Show_Frame(args.src_file)
+    else:
+        password = args.passphrase
+    if args.dst_file is not None:
+        dst = args.dst_file
+    else:
+        dst = '%s%s' % (args.src_file, ENCRYPTED_END)
+    encrypt_dir_or_file(password, args.src_file, dst, args.recursive, args.delete)
+
+
+def decrypt(args):
+    if args.passphrase is None:
+        password = frame.Show_Frame(args.src_file)
+    else:
+        password = args.passphrase
+    if args.dst_file is not None:
+        dst = args.dst_file
+    else:
+        dst = without_encrypted_ending(args.src_file)
+    decrypt_dir_or_file(password, args.src_file, dst, args.recursive, args.delete)
+
+
 def encrypt_file(first_file, codefile):
-    try:
-        fd = os.open(
-            first_file,
-            os.O_RDONLY,
-            0o0666,
-        )
+    with open(first_file, 'rb') as fh:
         with code_file.MyOpen(codefile, 'w') as cf:
-            text = ''
-            tmp = ''
             while True:
-                tmp = read_block(fd, BLOCK_SIZE)
+                tmp = fh.read(BLOCK_SIZE)
                 if not tmp:
                     break
                 cf.write(tmp)
-                tmp = ''
-    finally:
-        os.close(fd)
 
-def my_write(fd, data):
-    while data:
-        data = data[os.write(fd, data):]
+
+def encrypt_dir_or_file(password, src, dst, recursive, delete):
+    if os.path.isdir(src):
+        if not os.path.exists(dst):
+            os.mkdir(dst)
+        for file in os.listdir(src):
+            if os.path.isdir(os.path.join(src, file)):
+                if recursive == YES_NO[0]:
+                    encrypt_dir_or_file(
+                        password,
+                        os.path.join(src, file),
+                        os.path.join(
+                            dst,
+                            '%s%s' % (file, ENCRYPTED_END),
+                        ),
+                        recursive,
+                        delete,
+                    )
+
+            else:
+                encrypt_file(
+                    os.path.join(src, file),
+                    code_file.CodeFile(
+                        os.path.join(
+                            dst,
+                            '%s%s' % (file, ENCRYPTED_END),
+                        ),
+                        password,
+                    ),
+                )
+                if delete == YES_NO[0]:
+                    delete_file_properly(os.path.join(src, file))
+        if delete == YES_NO[0]:
+            os.rmdir(src)
+    else:
+        encrypt_file(src, code_file.CodeFile(dst, password))
+        if delete == YES_NO[0]:
+            delete_file_properly(src)
 
 
 def decrypt_file(codefile, file_name):
     with code_file.MyOpen(codefile, 'r') as cf:
-        try:
-            fd = os.open(
-                file_name,
-                os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
-                0o0666,
-            )
-            text = ''
+        with open(file_name, 'w') as fh:
             while True:
                 text = cf.read(BLOCK_SIZE)
                 if not text:
                     break
-                my_write(fd, text)
-        finally:
-            os.close(fd)
+                fh.write(text)
 
 
-def encrypt_diractory(password, dir, encrypted_dir_name):
-    dirs_in_dir = []
-    if not os.path.exists(encrypted_dir_name):
-        os.makedirs(encrypted_dir_name)
-    for root, dirs, files in os.walk(dir):
-        if root == dir:
-            for name in files:
-                codefile = code_file.CodeFile(
-                    encrypted_dir_name +'\\'+ name + ENCRYPTED_END,
-                    password,
+def decrypt_dir_or_file(password, src, dst, recursive, delete):
+    if os.path.isdir(src):
+        if not os.path.exists(dst):
+            os.mkdir(dst)
+        for file in os.listdir(src):
+            if os.path.isdir(os.path.join(src, file)):
+                if recursive == YES_NO[0]:
+                    decrypt_dir_or_file(
+                        password,
+                        os.path.join(src, file),
+                        os.path.join(
+                            dst,
+                            without_encrypted_ending(file),
+                        ),
+                        recursive,
+                        delete,
+                    )
+            else:
+                decrypt_file(
+                    code_file.CodeFile(os.path.join(src, file), password),
+                    os.path.join(
+                        dst,
+                        without_encrypted_ending(file),
+                    ),
                 )
-                print os.path.join(root, name)
-                encrypt_file(os.path.join(root, name), codefile)
-            for dir1 in dirs:
-                dirs_in_dir.append(dir1)
-    return dirs_in_dir
+                if delete == YES_NO[0]:
+                    delete_file_properly(os.path.join(src, file))
+        if delete == YES_NO[0]:
+            os.rmdir(src)
+    else:
+        decrypt_file(code_file.CodeFile(src, password), dst)
+        if delete == DELETE[0]:
+            delete_file_properly(src)
+
 
 
 def without_encrypted_ending(name):
@@ -129,174 +196,61 @@ def without_encrypted_ending(name):
     return name
 
 
-def decrypt_diractory(password, dir, decrypted_name):
-    dirs_in_dir = []
-    if not os.path.exists(decrypted_name):
-        os.makedirs(decrypted_name)
-    for root, dirs, files in os.walk(dir):
-        if root == dir:
-            for name in files:
-                codefile = code_file.CodeFile(os.path.join(root, name), password)
-                decrypt_file(
-                    codefile,
-                    decrypted_name + '\\' + without_encrypted_ending(name),
-                )
-            for dir1 in dirs:
-                dirs_in_dir.append(dir1)
-    return dirs_in_dir
+def delete_file_or_dir_properly(file, recursive):
+    if os.path.isdir(file):
+        for f in os.listdir(file):
+            if os.path.isdir(file):
+                if recursive:
+                    delete_file_or_dir_properly(
+                        os.path.join(file, f),
+                        recursive,
+                    )
+            else:
+                delete_file_properly(os.path.join(file, f))
+        os.rmdir(file)
+    else:
+        delete_file_properly(file)
 
 
-def encrypt_diractory_recorsive(password, dir, encrypt_dir_name):
-    dirs_in_dir = encrypt_diractory(password, dir, encrypt_dir_name)
-    for dir1 in dirs_in_dir:
-        new_dir = encrypt_dir_name + '\\' + dir1 + ENCRYPTED_END
-        encrypt_diractory_recorsive(password, dir + '\\' + dir1, new_dir)
+def write_all_file(len_file, fh, what_to_write, block_size=BLOCK_SIZE):
 
-
-def decrypt_diractory_recorsive(password, dir, decrypt_dir_name):
-    dirs_in_dir = decrypt_diractory(password, dir, decrypt_dir_name)
-    for dir1 in dirs_in_dir:
-        new_dir = decrypt_dir_name + '\\' + without_encrypted_ending(dir1)
-        decrypt_diractory_recorsive(password, dir + '\\' + dir1, new_dir)
-
-def read_block(fd, block_size):
-        '''
-        fd - the file descriptor of the file we want to read
-        block_size - the number of bytes we want to read
-
-        reading from file a block
-
-        returning the text - what we read from file
-        '''
-        text = ''
-        tmp = ''
-        while True:
-            tmp = os.read(fd, block_size)
-            text += tmp
-            if len(text) == block_size or not tmp:
-                break
-        return text
-
-
-def write_all_file(len_file, fd, what_to_write, block_size=BLOCK_SIZE):
-
-    ''' len_file - the lenght of the data that is written in the file.
-    fd - the file descriptor of the file we want to write to.
+    ''' len_file - the length of the data that is written in the file.
     what_to_write - one character that we want to write over all the file.
     block_size - the size of a block
     (to make sure it works if there is a big file).
 
     writing to all of the file one character, block by block.'''
 
-    os.lseek(fd, 0, 0)
+    fh.seek(0, 0)
     tmp = tmp2 = len_file
     while tmp > 0:
         if tmp2 > BLOCK_SIZE:
             tmp2 = BLOCK_SIZE
-        my_write(fd, what_to_write*tmp2)
+        fh.write(what_to_write*tmp2)
         tmp2 = tmp = tmp - tmp2
 
 
 def delete_file_properly(file, len_file=None):
-    ''' len_file - the lenght of the data that is written in the file.
+    ''' len_file - the length of the data that is written in the file.
     file - the name of the file we want to encrypt
 
     writing to all file 16 times:
     first byte - 0, second byte - 0xff and random byte'''
-
-    if len_file is None:
-        fd = os.open(
-            file,
-            os.O_RDWR,
-            0o0666,
-        )
-        len_file = 0
-        while True:
-            block = read_block(fd, BLOCK_SIZE)
-            if not block:
-                break
-            len_file += len(block)
-
-    else:
-        fd = os.open(
-            file,
-            os.O_WRONLY,
-            0o0666,
-        )
-
-    try:
+    len_file = os.path.getsize(file)
+    with open(file, 'w') as fh:
         for i in range(16):
             st = ''
             rand = random.randint(0, 255)
-            write_all_file(len_file, fd, FIRST_WRITE)
-            write_all_file(len_file, fd, SECOND_WRITE)
-            write_all_file(len_file, fd, BITSTRUCT.pack(rand))
-    finally:
-        os.close(fd)
-        os.remove(file)
-
-
-def delete_all_files_in_dir_properly(dir):
-    dirs_in_dir = []
-    for root, dirs, files in os.walk(dir):
-        if root == dir:
-            for name in files:
-                delete_file_properly(os.path.join(root, name))
-            for dir1 in dirs:
-                dirs_in_dir.append(dir1)
-    return dirs_in_dir
-
-
-def delete_all_files_in_dirs_recursive(dir):
-    dirs_in_dir = delete_all_files_in_dir_properly(dir)
-    for dir1 in dirs_in_dir:
-        delete_all_files_in_dirs_recursive(dir + '\\' + dir1)
-    os.rmdir(dir)
+            write_all_file(len_file, fh, FIRST_WRITE)
+            write_all_file(len_file, fh, SECOND_WRITE)
+            write_all_file(len_file, fh, BITSTRUCT.pack(rand))
+    os.remove(file)
 
 
 def main():
-    args = parse_args()
-    if args.passphrase is None and not args.command == COMMANDS[2]:
-        password = frame.Show_Frame(args.src_file).encode('utf8')
-    elif not args.command == COMMANDS[2]:
-        password = args.passphrase
-
-    if args.command == COMMANDS[0]:
-        if args.dst_file is not None:
-            dst = args.dst_file
-        else:
-            dst = args.src_file + ENCRYPTED_END
-
-        if os.path.isdir(args.src_file):
-            if args.recursive:
-                encrypt_diractory_recorsive(password, args.src_file, dst)
-            else:
-                encrypt_diractory(password, args.src_file, dst)
-        else:
-            encrypt_file(args.src_file, code_file.CodeFile(dst, password))
-
-    elif args.command == COMMANDS[1]:
-        if args.dst_file is not None:
-            dst = args.dst_file
-        else:
-            dst = without_encrypted_ending(args.src_file)
-
-        if os.path.isdir(args.src_file):
-            if args.recursive:
-                decrypt_diractory_recorsive(password, args.src_file, dst)
-            else:
-                decrypt_diractory(password, args.src_file, dst)
-        else:
-            decrypt_file(code_file.CodeFile(args.src_file, password), dst)
-
-    if args.command == COMMANDS[2] or args.delete:
-        if os.path.isdir(args.src_file):
-            if args.recursive:
-                delete_all_files_in_dirs_recursive(args.src_file)
-            else:
-                delete_all_files_in_dir_properly(args.src_file)
-        else:
-            delete_file_properly(args.src_file)
+    COMMANDS = {'encrypt': encrypt, 'decrypt': decrypt, 'delete': delete}
+    args = parse_args(COMMANDS)
+    COMMANDS[args.command](args)
 
 
 if __name__ == '__main__':
