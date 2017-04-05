@@ -1,5 +1,4 @@
 import crypte
-import os
 
 
 class CodeFile(object):
