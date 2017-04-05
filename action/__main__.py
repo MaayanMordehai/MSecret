@@ -229,30 +229,24 @@ def delete_file_properly(file, len_file=None):
 
             fh.seek(0, 0)
             left_to_write = len_file
-            while True:
-                if BLOCK_SIZE > left_to_write:
-                    fh.write(FIRST_WRITE * left_to_write)
-                    break
+            while left_to_write > BLOCK_SIZE:
                 fh.write(FIRST_WRITE * BLOCK_SIZE)
                 left_to_write -= BLOCK_SIZE
+            fh.write(FIRST_WRITE * left_to_write)
 
             fh.seek(0, 0)
             left_to_write = len_file
-            while True:
-                if BLOCK_SIZE > left_to_write:
-                    fh.write(SECOND_WRITE * left_to_write)
-                    break
+            while left_to_write > BLOCK_SIZE:
                 fh.write(SECOND_WRITE * BLOCK_SIZE)
                 left_to_write -= BLOCK_SIZE
+            fh.write(SECOND_WRITE * left_to_write)
 
             fh.seek(0, 0)
             left_to_write = len_file
-            while True:
-                if BLOCK_SIZE > left_to_write:
-                    fh.write(rand * left_to_write)
-                    break
+            while left_to_write > BLOCK_SIZE:
                 fh.write(rand * BLOCK_SIZE)
                 left_to_write -= BLOCK_SIZE
+            fh.write(BITSTRUCT.pack(rand) * left_to_write)
 
     os.remove(file)
 
