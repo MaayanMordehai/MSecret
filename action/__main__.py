@@ -9,7 +9,6 @@ from ..common import code_file
 from ..common import frame
 
 
-YES_NO = {'yes': True, 'no': False}
 ENCRYPTED_END = '.MSecret'
 BLOCK_SIZE = 1024
 BITSTRUCT = struct.Struct('B')
@@ -17,15 +16,16 @@ FIRST_WRITE = BITSTRUCT.pack(0)
 SECOND_WRITE = BITSTRUCT.pack(0xff)
 
 
-def parse_args(COMMANDS):
+def parse_args(commands):
     """Parse program arguments."""
 
+    yes_no = {'yes': True, 'no': False}
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--command',
         required=True,
         type=str,
-        choices=sorted(COMMANDS.keys()),
+        choices=sorted(commands.keys()),
         help='encrypt or decrypt or delete the source file/dir',
     )
     parser.add_argument(
@@ -42,16 +42,16 @@ def parse_args(COMMANDS):
     )
     parser.add_argument(
         '--delete',
-        default=sorted(YES_NO.keys())[0],
+        default=sorted(yes_no.keys())[0],
         type=str,
-        choices=sorted(YES_NO.keys()),
+        choices=sorted(yes_no.keys()),
         help='if you want to delete the source file write yes.',
     )
     parser.add_argument(
         '--recursive',
-        default=sorted(YES_NO.keys())[0],
+        default=sorted(yes_no.keys())[0],
         type=str,
-        choices=sorted(YES_NO.keys()),
+        choices=sorted(yes_no.keys()),
         help='yes if you want to do the command to dirs inside dirs?',
     )
     parser.add_argument(
@@ -64,11 +64,10 @@ def parse_args(COMMANDS):
         ),
     )
 
-    return parser.parse_args()
-
-
-def delete(password, src, dst, delete, recur):
-    delete_file_or_dir_properly(src, recur)
+    args = parser.parse_args()
+    args.delete = yes_no[args.delete]
+    args.recursive = yes_no[args.recursive]
+    return args
 
 
 def encrypt(password, src, dst, delete, recur):
@@ -216,7 +215,14 @@ def delete_file_or_dir_properly(file, recursive):
         delete_file_properly(file)
 
 
-def delete_file_properly(file, len_file=None):
+def write_all_file(fh, what_to_write, left_to_write, block_size=BLOCK_SIZE):
+    fh.seek(0, 0)
+    while left_to_write > 0:
+        fh.write(what_to_write * block_size)
+        left_to_write -= block_size
+
+
+def delete_file_properly(file, block_size=BLOCK_SIZE):
     ''' len_file - the length of the data that is written in the file.
     file - the name of the file we want to encrypt
 
@@ -225,42 +231,46 @@ def delete_file_properly(file, len_file=None):
     len_file = os.path.getsize(file)
     with open(file, 'w') as fh:
         for i in range(16):
-            rand = random.randint(0, 255)
-
-            fh.seek(0, 0)
-            left_to_write = len_file
-            while left_to_write > BLOCK_SIZE:
-                fh.write(FIRST_WRITE * BLOCK_SIZE)
-                left_to_write -= BLOCK_SIZE
-            fh.write(FIRST_WRITE * left_to_write)
-
-            fh.seek(0, 0)
-            left_to_write = len_file
-            while left_to_write > BLOCK_SIZE:
-                fh.write(SECOND_WRITE * BLOCK_SIZE)
-                left_to_write -= BLOCK_SIZE
-            fh.write(SECOND_WRITE * left_to_write)
-
-            fh.seek(0, 0)
-            left_to_write = len_file
-            while left_to_write > BLOCK_SIZE:
-                fh.write(rand * BLOCK_SIZE)
-                left_to_write -= BLOCK_SIZE
-            fh.write(BITSTRUCT.pack(rand) * left_to_write)
+            write_all_file(
+                fh,
+                FIRST_WRITE,
+                len_file,
+                block_size,
+            )
+            write_all_file(
+                fh,
+                SECOND_WRITE,
+                len_file,
+                block_size,
+            )
+            write_all_file(
+                fh,
+                BITSTRUCT.pack(
+                    random.randint(
+                        0,
+                        255,
+                    )
+                ),
+                len_file,
+                block_size,
+            )
 
     os.remove(file)
 
 
 def main():
-    COMMANDS = {'encrypt': encrypt, 'decrypt': decrypt, 'delete': delete}
-    args = parse_args(COMMANDS)
-    COMMANDS[args.command](
-        args.passphrase,
-        args.src_file,
-        args.dst_file,
-        YES_NO[args.delete],
-        YES_NO[args.recursive],
-    )
+    commands = {'encrypt': encrypt, 'decrypt': decrypt, 'delete': delete_file_or_dir_properly}
+    args = parse_args(commands)
+    if args.command == 'delete':
+        commands[args.command](args.src_file, args.recursive)
+    else:
+        commands[args.command](
+            args.passphrase,
+            args.src_file,
+            args.dst_file,
+            args.delete,
+            args.recursive,
+        )
 
 
 if __name__ == '__main__':
