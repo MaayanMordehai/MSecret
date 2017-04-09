@@ -230,19 +230,19 @@ def delete_file_properly(file, block_size=BLOCK_SIZE):
     first byte - 0, second byte - 0xff and random byte'''
     len_file = os.path.getsize(file)
     with open(file, 'w') as fh:
-        for i in range(16):
-            write_all_file(
-                fh,
-                FIRST_WRITE,
-                len_file,
-                block_size,
-            )
-            write_all_file(
-                fh,
-                SECOND_WRITE,
-                len_file,
-                block_size,
-            )
+        write_all_file(
+            fh,
+            FIRST_WRITE,
+            len_file,
+            block_size,
+        )
+        write_all_file(
+            fh,
+            SECOND_WRITE,
+            len_file,
+            block_size,
+        )
+        for i in range(6):
             write_all_file(
                 fh,
                 BITSTRUCT.pack(
