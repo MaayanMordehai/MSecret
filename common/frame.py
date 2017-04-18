@@ -26,12 +26,6 @@ class FrameForPassword(wx.Frame):
         self._problom.SetForegroundColour(wx.BLUE)
 
         label = 'done'
-        self._problom = wx.StaticText(
-            self._panel,
-            label=""
-        )
-        self._problom.SetForegroundColour(wx.RED)
-
         self._button = wx.Button(
             self._panel,
             label=label,
@@ -122,3 +116,4 @@ def Show_Frame(file_name):
     app.MainLoop()
     print s.get_password()
     return s.get_password()
+

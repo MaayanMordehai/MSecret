@@ -1,19 +1,15 @@
 
 import argparse
 import os
-import random
-import struct
 
 
 from ..common import code_file
 from ..common import frame
+from ..common import delete
 
 
 ENCRYPTED_END = '.MSecret'
 BLOCK_SIZE = 1024
-BITSTRUCT = struct.Struct('B')
-FIRST_WRITE = BITSTRUCT.pack(0)
-SECOND_WRITE = BITSTRUCT.pack(0xff)
 
 
 def parse_args(commands):
@@ -138,13 +134,13 @@ def encrypt_dir_or_file(password, src, dst, recursive, delete):
                     ),
                 )
                 if delete:
-                    delete_file_properly(os.path.join(src, file))
+                    delete.delete_file_properly(os.path.join(src, file))
         if delete and recursive:
             os.rmdir(src)
     else:
         encrypt_file(src, code_file.CodeFile(dst, password))
         if delete:
-            delete_file_properly(src)
+            delete.delete_file_properly(src)
 
 
 def decrypt_file(codefile, file_name):
@@ -183,13 +179,13 @@ def decrypt_dir_or_file(password, src, dst, recursive, delete):
                     ),
                 )
                 if delete:
-                    delete_file_properly(os.path.join(src, file))
+                    delete.delete_file_properly(os.path.join(src, file))
         if delete and recursive:
             os.rmdir(src)
     else:
         decrypt_file(code_file.CodeFile(src, password), dst)
         if delete:
-            delete_file_properly(src)
+            delete.delete_file_properly(src)
 
 
 def without_encrypted_ending(name):
@@ -208,54 +204,12 @@ def delete_file_or_dir_properly(file, recursive):
                         recursive,
                     )
             else:
-                delete_file_properly(os.path.join(file, f))
+                delete.delete_file_properly(os.path.join(file, f))
         if recursive:
             os.rmdir(file)
     else:
-        delete_file_properly(file)
+        delete.delete_file_properly(file)
 
-
-def write_all_file(fh, what_to_write, left_to_write, block_size=BLOCK_SIZE):
-    fh.seek(0, 0)
-    while left_to_write > 0:
-        fh.write(what_to_write * block_size)
-        left_to_write -= block_size
-
-
-def delete_file_properly(file, block_size=BLOCK_SIZE):
-    ''' len_file - the length of the data that is written in the file.
-    file - the name of the file we want to encrypt
-
-    writing to all file 16 times:
-    first byte - 0, second byte - 0xff and random byte'''
-    len_file = os.path.getsize(file)
-    with open(file, 'w') as fh:
-        write_all_file(
-            fh,
-            FIRST_WRITE,
-            len_file,
-            block_size,
-        )
-        write_all_file(
-            fh,
-            SECOND_WRITE,
-            len_file,
-            block_size,
-        )
-        for i in range(6):
-            write_all_file(
-                fh,
-                BITSTRUCT.pack(
-                    random.randint(
-                        0,
-                        255,
-                    )
-                ),
-                len_file,
-                block_size,
-            )
-
-    os.remove(file)
 
 
 def main():
