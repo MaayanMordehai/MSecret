@@ -1,6 +1,5 @@
 import wx
 import os
-import subprocess
 import _winreg
 
 
@@ -16,6 +15,8 @@ ENVIRONMENT_PATH = "SYSTEM\CurrentControlSet\Control\Session Manager\Environment
 ENCRYPT_PATH = "*\shell\Encrypt\command"
 RUN_ENCRYPT = "python -m MSecret.action --command encrypt --src-file %1"
 DECRYPT_PATH = "MSecretfile\shell\Decrypt\command"
+DECRYPT_ENDING = '.MSecret'
+DECRYPT_SEND_TO = 'MSecretfile'
 RUN_DECRYPT = "python -m MSecret.action --command decrypt --src-file %1"
 DELETE_PATH = "*\\shell\Special Delete\command"
 RUN_DELETE = "python -m MSecret.action --command delete --src-file %1"
@@ -122,14 +123,13 @@ class Installation(wx.Frame):
         try:
             try:
                 registry_key = _winreg.OpenKey(
-                    _winreg.HKEY_CURRENT_USER,
+                    _winreg.HKEY_LOCAL_MACHINE,
                     ENVIRONMENT_PATH,
                     0,
                     _winreg.KEY_ALL_ACCESS,
                 )
-                print "hhhhhh"
+
             except WindowsError:
-                print "here"
                 registry_key = _winreg.CreateKey(
                     _winreg.HKEY_CURRENT_USER,
                     ENVIRONMENT_PATH,
@@ -138,9 +138,9 @@ class Installation(wx.Frame):
             try:
                 value, _ = _winreg.QueryValueEx(registry_key, PYTHONPATH)
                 dir = "%s;%s" % (value, dir)
-                print dir
             except WindowsError:
-                pass
+                print "there is not PYTHONPATH varible yet."
+
             _winreg.SetValueEx(
                 registry_key,
                 PYTHONPATH,
@@ -160,6 +160,12 @@ class Installation(wx.Frame):
                 DECRYPT_PATH,
                 _winreg.REG_SZ,
                 RUN_DECRYPT,
+            )
+            _winreg.SetValue(
+                _winreg.HKEY_CLASSES_ROOT,
+                DECRYPT_ENDING,
+                _winreg.REG_SZ,
+                DECRYPT_SEND_TO,
             )
             _winreg.SetValue(
                 _winreg.HKEY_CLASSES_ROOT,
@@ -197,4 +203,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
