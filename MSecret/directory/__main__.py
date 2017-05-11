@@ -11,6 +11,7 @@ from ..common import code_file
 
 BLOCK_SIZE = 1024
 FILE_END = '.txt'
+LIMIT_CHARACTERS_TO_FILE_NAME = 31
 
 
 class NameAndPassword(wx.Frame):
@@ -310,21 +311,36 @@ class FilesAndOptions(wx.Frame):
             file
         ).encode('utf-8')
         if renamed != '':
-            self._listbox.Delete(sel)
             if not renamed[-len(FILE_END):] == FILE_END:
                 renamed = '%s%s' % (renamed, FILE_END)
-            self._listbox.Insert(renamed, sel)
-            encrypted = encrypt_file_name(renamed, self._save.password)
-            os.rename(
-                os.path.join(
-                    self._save.dir_name,
-                    self._file_and_encrypted[file],
-                ),
-                os.path.join(
-                    self._save.dir_name,
-                    encrypted,
-                ),
-            )
+            if len(renamed) > LIMIT_CHARACTERS_TO_FILE_NAME:
+                wx.MessageBox(
+                    "lenght of file name must be under 32 characters",
+                    "error",
+                    wx.ICON_ERROR
+                    )
+            else:
+                self._listbox.Delete(sel)
+                self._listbox.Insert(renamed, sel)
+                encrypted = encrypt_file_name(renamed, self._save.password)
+                os.rename(
+                    os.path.join(
+                        self._save.dir_name,
+                        self._file_and_encrypted[file],
+                    ),
+                    os.path.join(
+                        self._save.dir_name,
+                        encrypted,
+                    ),
+                )
+                index = 0
+                for file1 in self._list_items:
+                    if file1 == file:
+                        break
+                    index += 1
+                self._list_items[index] = renamed
+                del self._file_and_encrypted[file]
+                self._file_and_encrypted[renamed] = encrypted
 
     def new_file(self, event):
         dig = wx.TextEntryDialog(self, 'Enter file name', 'choose name')
@@ -336,7 +352,7 @@ class FilesAndOptions(wx.Frame):
                 path, name = os.path(name)
             name_encrypted = encrypt_file_name(name, self._save.password)
             if name in self._list_items:
-                wx.MessageBox("File Exsist!", "error", wx.ICON_INFORMATION)
+                wx.MessageBox("File Exsist!", "error", wx.ICON_ERROR)
             else:
                 encrypted = os.path.join(
                     self._save.dir_name,
@@ -377,6 +393,7 @@ class Edit(wx.Frame):
             parent,
             title='edit secret file %s' % file_name,
         )
+        print 'FILE NAME: %s' % file_name
         self.full_path = encrypt_file_full_path
         self.password = password
         codefile = code_file.CodeFile(
@@ -408,11 +425,12 @@ class Edit(wx.Frame):
 
     def save(self, event):
         data = self.text.GetValue().encode('utf-8')
-        print data
+        print 'DATA: %s' % data
         codefile = code_file.CodeFile(
             self.full_path,
             self.password,
         )
+        print 'FULL PATH: %s' % self.full_path
         with code_file.MyOpen(codefile, 'w') as cf:
             cf.write(data)
         self.Destroy()
@@ -426,9 +444,9 @@ def get_decrypt_file_data(codefile):
     with code_file.MyOpen(codefile, 'r') as cf:
         while True:
             tmp = cf.read(BLOCK_SIZE)
-            text += tmp
             if not tmp:
                 break
+            text += tmp
     return text
 
 
@@ -440,16 +458,23 @@ def encrypt_file_name(name, password):
     returning the encrypted name.'''
 
     c = crypte.MyCipher(password, True)
+
     lenght = c.iv_lenght
-    if lenght < 10:
-        lenght = '0%s' % lenght
-    return base64.b32encode(
-        '%s%s%s' % (
-            lenght,
-            c.iv,
-            c.doFinal(name),
+    if lenght < 16:
+        lenght = '0%s' % str(hex(lenght))[2]
+    else:
+        lenght = str(hex(lenght))[2:4]
+    enc = '%s%s%s' % (lenght, c.iv, c.doFinal(name))
+
+    file_name_encrypt_length = LIMIT_CHARACTERS_TO_FILE_NAME + 12
+
+    if len(enc) < file_name_encrypt_length:
+        enc = '%s%s%s' % (
+            len(enc),
+            enc,
+            os.urandom(file_name_encrypt_length - len(enc)),
         )
-    )
+    return base64.b32encode(enc)
 
 
 def decrypt_file_name(name, password):
@@ -460,6 +485,7 @@ def decrypt_file_name(name, password):
     returning the decrypted name.'''
 
     e_name = base64.b32decode(name)
+    e_name = e_name[2: 2 + int(e_name[:2])]
     len_iv = int(e_name[:2], 16)
     c = crypte.MyCipher(
         password,

@@ -28,10 +28,7 @@ class CodeFile(object):
                 self._iv_read,
             )
         block = self._fh.read(block_size)
-        if len(block) < block_size and block:
-            self._did_final_read = True
-            return self._read_cip.doFinal(block)
-        elif block:
+        if block:
             return self._read_cip.update(block)
         elif not self._did_final_read:
             self._did_final_read = True

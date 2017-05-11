@@ -10,7 +10,11 @@ from ..common import delete
 
 ENCRYPTED_END = '.MSecret'
 BLOCK_SIZE = 1024
+MYIV = 'random08'
 
+
+import time
+time.sleep(10)
 
 def parse_args(commands):
     """Parse program arguments."""
@@ -101,10 +105,11 @@ def encrypt_file(first_file, codefile):
                 tmp = fh.read(BLOCK_SIZE)
                 if not tmp:
                     break
-                cf.write(tmp)
+                print tmp
+                cf.write(tmp, iv=MYIV)
 
 
-def encrypt_dir_or_file(password, src, dst, recursive, delete):
+def encrypt_dir_or_file(password, src, dst, recursive, delet):
     if os.path.isdir(src):
         if not os.path.exists(dst):
             os.makedirs(dst)
@@ -119,7 +124,7 @@ def encrypt_dir_or_file(password, src, dst, recursive, delete):
                             '%s%s' % (file, ENCRYPTED_END),
                         ),
                         recursive,
-                        delete,
+                        delet,
                     )
 
             else:
@@ -133,13 +138,13 @@ def encrypt_dir_or_file(password, src, dst, recursive, delete):
                         password,
                     ),
                 )
-                if delete:
+                if delet:
                     delete.delete_file_properly(os.path.join(src, file))
-        if delete and recursive:
+        if delet and recursive:
             os.rmdir(src)
     else:
         encrypt_file(src, code_file.CodeFile(dst, password))
-        if delete:
+        if delet:
             delete.delete_file_properly(src)
 
 
@@ -153,7 +158,7 @@ def decrypt_file(codefile, file_name):
                 fh.write(text)
 
 
-def decrypt_dir_or_file(password, src, dst, recursive, delete):
+def decrypt_dir_or_file(password, src, dst, recursive, delet):
     if os.path.isdir(src):
         if not os.path.exists(dst):
             os.makedirs(dst)
@@ -168,7 +173,7 @@ def decrypt_dir_or_file(password, src, dst, recursive, delete):
                             without_encrypted_ending(file),
                         ),
                         recursive,
-                        delete,
+                        delet,
                     )
             else:
                 decrypt_file(
@@ -178,13 +183,13 @@ def decrypt_dir_or_file(password, src, dst, recursive, delete):
                         without_encrypted_ending(file),
                     ),
                 )
-                if delete:
+                if delet:
                     delete.delete_file_properly(os.path.join(src, file))
-        if delete and recursive:
+        if delet and recursive:
             os.rmdir(src)
     else:
         decrypt_file(code_file.CodeFile(src, password), dst)
-        if delete:
+        if delet:
             delete.delete_file_properly(src)
 
 
