@@ -30,7 +30,6 @@ def dup_slash(string):
     return string
 
 
-
 def main():
     app = wx.App()
     uninstall = Uninstall(None, QUESTION)

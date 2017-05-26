@@ -6,12 +6,16 @@ import unittest
 class MyCipherTest(unittest.TestCase):
 
     def test(self):
-        for p in "maayan", "mordehai":
-            for t in 'plaintext1', 'more', '', '12345678', '123456789', '1',"nice":
+        for p in "maayan", "mordehai", "password":
+            for t in 'plaintext1', 'more', '', '12345678', '123456789', '1',"nice", 'hak':
                 c = crypte.MyCipher(p, True)
                 c2 = crypte.MyCipher(p, False, c.iv)
                 decrypted = c2.update(c.update(t))
-                self.assertEqual(t, c2.doFinal(c.doFinal()))
+                self.assertEqual(t, decrypted + c2.doFinal(c.doFinal()))
+                c = crypte.AesCipher(p, True)
+                c2 = crypte.AesCipher(p, False, c.iv)
+                decrypted = c2.update(c.update(t))
+                self.assertEqual(t, decrypted + c2.doFinal(c.doFinal()))
 
     def test_one_byte_at_a_time(self):
         for string in 'he', 'hjakslcm', 'pppasc pasc ', '01234567tteni`d?':
@@ -34,3 +38,6 @@ class MyCipherTest(unittest.TestCase):
             c = crypte.MyCipher('password', False, '12345678')
             c.update('hello ')
             c.doFinal('world')
+
+if __name__ == '__main__':
+    unittest.main()

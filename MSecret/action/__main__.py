@@ -10,11 +10,8 @@ from ..common import delete
 
 ENCRYPTED_END = '.MSecret'
 BLOCK_SIZE = 1024
-MYIV = 'random08'
+ENCRYPTIONS = ['AES', 'MSecret']
 
-
-import time
-time.sleep(10)
 
 def parse_args(commands):
     """Parse program arguments."""
@@ -49,10 +46,17 @@ def parse_args(commands):
     )
     parser.add_argument(
         '--recursive',
-        default=sorted(yes_no.keys())[0],
+        default=sorted(yes_no.keys())[1],
         type=str,
         choices=sorted(yes_no.keys()),
         help='yes if you want to do the command to dirs inside dirs?',
+    )
+    parser.add_argument(
+        '--encryption',
+        default=ENCRYPTIONS[1],
+        type=str,
+        choices=ENCRYPTIONS,
+        help='which encryption???',
     )
     parser.add_argument(
         '--passphrase',
@@ -70,7 +74,7 @@ def parse_args(commands):
     return args
 
 
-def encrypt(password, src, dst, delete, recur):
+def encrypt(password, src, dst, delete, recur, enc):
     if password is None:
         password = frame.Show_Frame(src)
     if dst is None:
@@ -81,6 +85,7 @@ def encrypt(password, src, dst, delete, recur):
         dst,
         recur,
         delete,
+        enc,
     )
 
 
@@ -94,7 +99,7 @@ def decrypt(password, src, dst, delete, recur):
         src,
         dst,
         recur,
-        delete
+        delete,
     )
 
 
@@ -105,11 +110,10 @@ def encrypt_file(first_file, codefile):
                 tmp = fh.read(BLOCK_SIZE)
                 if not tmp:
                     break
-                print tmp
-                cf.write(tmp, iv=MYIV)
+                cf.write(tmp)
 
 
-def encrypt_dir_or_file(password, src, dst, recursive, delet):
+def encrypt_dir_or_file(password, src, dst, recursive, delet, enc):
     if os.path.isdir(src):
         if not os.path.exists(dst):
             os.makedirs(dst)
@@ -125,6 +129,7 @@ def encrypt_dir_or_file(password, src, dst, recursive, delet):
                         ),
                         recursive,
                         delet,
+                        enc,
                     )
 
             else:
@@ -136,6 +141,7 @@ def encrypt_dir_or_file(password, src, dst, recursive, delet):
                             '%s%s' % (file, ENCRYPTED_END),
                         ),
                         password,
+                        enc,
                     ),
                 )
                 if delet:
@@ -143,7 +149,7 @@ def encrypt_dir_or_file(password, src, dst, recursive, delet):
         if delet and recursive:
             os.rmdir(src)
     else:
-        encrypt_file(src, code_file.CodeFile(dst, password))
+        encrypt_file(src, code_file.CodeFile(dst, password, enc))
         if delet:
             delete.delete_file_properly(src)
 
@@ -216,12 +222,19 @@ def delete_file_or_dir_properly(file, recursive):
         delete.delete_file_properly(file)
 
 
-
 def main():
     commands = {'encrypt': encrypt, 'decrypt': decrypt, 'delete': delete_file_or_dir_properly}
     args = parse_args(commands)
     if args.command == 'delete':
         commands[args.command](args.src_file, args.recursive)
+    elif args.command == 'decrypt':
+        commands[args.command](
+            args.passphrase,
+            args.src_file,
+            args.dst_file,
+            args.delete,
+            args.recursive,
+        )
     else:
         commands[args.command](
             args.passphrase,
@@ -229,6 +242,7 @@ def main():
             args.dst_file,
             args.delete,
             args.recursive,
+            args.encryption,
         )
 
 

@@ -11,7 +11,9 @@ from ..common import code_file
 
 BLOCK_SIZE = 1024
 FILE_END = '.txt'
-LIMIT_CHARACTERS_TO_FILE_NAME = 31
+LIMIT_CHARACTERS = 60
+ENC = 'MSecret'
+ENCRYPTIONS = ['AES', 'MSecret']
 
 
 class NameAndPassword(wx.Frame):
@@ -56,6 +58,15 @@ class NameAndPassword(wx.Frame):
             size=(140, -1),
         )
 
+        self._rbox = wx.RadioBox(
+            self._panel,
+            label = 'encryption',
+            choices = ENCRYPTIONS,
+            majorDimension = 1,
+            style = wx.RA_SPECIFY_ROWS
+        )
+
+
         # Set sizer for the frame, so we can change frame size to match widgets
         self._windowSizer = wx.BoxSizer()
         self._windowSizer.Add(
@@ -92,6 +103,12 @@ class NameAndPassword(wx.Frame):
             (2, 1),
             flag=wx.EXPAND,
         )
+        self._sizer.Add(
+            self._rbox,
+            (3, 0),
+            flag=wx.EXPAND,
+        )
+
         self._border = wx.BoxSizer()
 
         self._border.Add(
@@ -115,6 +132,10 @@ class NameAndPassword(wx.Frame):
             self.create_dir_button,
         )
         self.Bind(wx.EVT_CLOSE, self.OnExit)
+        self._rbox.Bind(wx.EVT_RADIOBOX,self.onRadioBox)
+
+    def onRadioBox(self, e):
+        self._save.encryption = e.GetEventObject()
 
     def edit_dir_button(self, e):
         dir = self._editfile.GetValue()
@@ -158,10 +179,15 @@ class Save(object):
     def __init__(self):
         self._dir_name = None
         self._password = None
+        self._encryption = None
 
     @property
     def dir_name(self):
         return self._dir_name
+
+    @property
+    def encryption(self):
+        return self._encryption
 
     @property
     def password(self):
@@ -170,6 +196,10 @@ class Save(object):
     @dir_name.setter
     def dir_name(self, name):
         self._dir_name = name
+
+    @encryption.setter
+    def encryption(self, en):
+        self._encryption = en
 
     @password.setter
     def password(self, password):
@@ -180,6 +210,8 @@ class FilesAndOptions(wx.Frame):
 
     def __init__(self, parent, save):
 
+        if save.encryption is None:
+            save.encryption = ENCRYPTIONS[0]
         wx.Frame.__init__(self, parent, -1, save.dir_name, size=(350, 220))
 
         panel = wx.Panel(self, -1)
@@ -298,7 +330,8 @@ class FilesAndOptions(wx.Frame):
                 self._save.dir_name,
                 self._file_and_encrypted[file_name],
             ),
-            self._save.password
+            self._save.password,
+            self._save.encryption,
         )
         frame.Show()
 
@@ -313,16 +346,10 @@ class FilesAndOptions(wx.Frame):
         if renamed != '':
             if not renamed[-len(FILE_END):] == FILE_END:
                 renamed = '%s%s' % (renamed, FILE_END)
-            if len(renamed) > LIMIT_CHARACTERS_TO_FILE_NAME:
-                wx.MessageBox(
-                    "lenght of file name must be under 32 characters",
-                    "error",
-                    wx.ICON_ERROR
-                    )
             else:
+                encrypted = encrypt_file_name(renamed, self._save.password, self._save.encryption)
                 self._listbox.Delete(sel)
                 self._listbox.Insert(renamed, sel)
-                encrypted = encrypt_file_name(renamed, self._save.password)
                 os.rename(
                     os.path.join(
                         self._save.dir_name,
@@ -348,9 +375,7 @@ class FilesAndOptions(wx.Frame):
             name = dig.GetValue().encode('utf-8')
             if not name[-len(FILE_END):] == FILE_END:
                 name = '%s%s' % (name, FILE_END)
-            if self._save.dir_name == name[:len(self._save.dir_name)]:
-                path, name = os.path(name)
-            name_encrypted = encrypt_file_name(name, self._save.password)
+            name_encrypted = encrypt_file_name(name, self._save.password, self._save.encryption)
             if name in self._list_items:
                 wx.MessageBox("File Exsist!", "error", wx.ICON_ERROR)
             else:
@@ -360,7 +385,7 @@ class FilesAndOptions(wx.Frame):
                 )
                 try:
                     open(encrypted, 'w').close()
-                    c = code_file.CodeFile(encrypted, self._save.password)
+                    c = code_file.CodeFile(encrypted, self._save.password, self._save.encryption)
                     with code_file.MyOpen(c, 'w') as cf:
                         cf.write('')
                     if not os.path.exists(encrypted):
@@ -376,7 +401,8 @@ class FilesAndOptions(wx.Frame):
                         "error",
                         wx.ICON_ERROR
                     )
-                    return
+                    raise
+
             self._listbox.Append(name)
             self._list_items = [name] + self._list_items
             self._file_and_encrypted[name] = name_encrypted
@@ -387,13 +413,13 @@ class FilesAndOptions(wx.Frame):
 
 class Edit(wx.Frame):
 
-    def __init__(self, parent, file_name, encrypt_file_full_path, password):
+    def __init__(self, parent, file_name, encrypt_file_full_path, password, enc):
         wx.Frame.__init__(
             self,
             parent,
             title='edit secret file %s' % file_name,
         )
-        print 'FILE NAME: %s' % file_name
+        self._encryption = enc
         self.full_path = encrypt_file_full_path
         self.password = password
         codefile = code_file.CodeFile(
@@ -425,12 +451,11 @@ class Edit(wx.Frame):
 
     def save(self, event):
         data = self.text.GetValue().encode('utf-8')
-        print 'DATA: %s' % data
         codefile = code_file.CodeFile(
             self.full_path,
             self.password,
+            self._encryption,
         )
-        print 'FULL PATH: %s' % self.full_path
         with code_file.MyOpen(codefile, 'w') as cf:
             cf.write(data)
         self.Destroy()
@@ -450,31 +475,41 @@ def get_decrypt_file_data(codefile):
     return text
 
 
-def encrypt_file_name(name, password):
+def encrypt_file_name(name, password, encr):
 
     ''' name - the file (or directory) name.
     password - the password we got to encrypt the name.
     encrypting the name.
     returning the encrypted name.'''
 
-    c = crypte.MyCipher(password, True)
-
+    if encr == ENCRYPTIONS[1]:
+        c = crypte.MyCipher(password, True)
+    elif encr == ENCRYPTIONS[0]:
+        c = crypte.AesCipher(password, True)
+    enc_len = len(encr)
+    if enc_len < 16:
+        enc_len = '0%s' % str(hex(enc_len))[2]
+    else:
+        enc_len = str(hex(enc_len))[2:4]
     lenght = c.iv_lenght
     if lenght < 16:
         lenght = '0%s' % str(hex(lenght))[2]
     else:
         lenght = str(hex(lenght))[2:4]
-    enc = '%s%s%s' % (lenght, c.iv, c.doFinal(name))
-
-    file_name_encrypt_length = LIMIT_CHARACTERS_TO_FILE_NAME + 12
-
-    if len(enc) < file_name_encrypt_length:
-        enc = '%s%s%s' % (
-            len(enc),
-            enc,
-            os.urandom(file_name_encrypt_length - len(enc)),
+    encrypted = '%s%s%s%s%s' % (enc_len, encr, lenght, c.iv, c.doFinal(name))
+    encrypted = '%s%s' % (len(encrypted), encrypted)
+    if len(encrypted) < LIMIT_CHARACTERS:
+        encrypted = '%s%s' % (
+            encrypted,
+            os.urandom(LIMIT_CHARACTERS - len(encrypted)),
         )
-    return base64.b32encode(enc)
+    else:
+        wx.MessageBox(
+            "sorry, can't make the file, name too long.",
+            "error",
+            wx.ICON_ERROR
+        )
+    return base64.b32encode(encrypted)
 
 
 def decrypt_file_name(name, password):
@@ -486,12 +521,22 @@ def decrypt_file_name(name, password):
 
     e_name = base64.b32decode(name)
     e_name = e_name[2: 2 + int(e_name[:2])]
+    len_encry = int(e_name[:2], 16)
+    encryption = e_name[2:len_encry + 2]
+    e_name = e_name[len_encry + 2:]
     len_iv = int(e_name[:2], 16)
-    c = crypte.MyCipher(
-        password,
-        False,
-        e_name[2:len_iv + 2]
-    )
+    if encryption == ENCRYPTIONS[0]:
+        c = crypte.AesCipher(
+            password,
+            False,
+            e_name[2:len_iv + 2],
+        )
+    elif encryption == ENCRYPTIONS[1]:
+        c = crypte.MyCipher(
+            password,
+            False,
+            e_name[2:len_iv + 2]
+        )
     return c.doFinal(e_name[len_iv + 2:])
 
 

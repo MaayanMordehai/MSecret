@@ -1,10 +1,14 @@
 import crypte
 
 
+MY_ENCRYPTION = "MSecret"
+AES = "AES"
+
+
 class CodeFile(object):
     '''class that represent the encrypted file'''
 
-    def __init__(self, file_name, password):
+    def __init__(self, file_name, password, enc=None):
         self._file_name = file_name
         self._fh = None
         self._password = password
@@ -12,6 +16,7 @@ class CodeFile(object):
         self._read_cip = None
         self._write_cip = None
         self._did_final_read = False
+        self._encryption = enc
 
     def open(self, read_or_write):
         if read_or_write == 'r':
@@ -21,26 +26,51 @@ class CodeFile(object):
 
     def read(self, block_size):
         if self._iv_read is None:
+            self._encryption = self._fh.read(int(self._fh.read(2), 16))
             self._iv_read = self._fh.read(int(self._fh.read(2), 16))
-            self._read_cip = crypte.MyCipher(
-                self._password,
-                False,
-                self._iv_read,
-            )
+            if self._encryption == MY_ENCRYPTION:
+                self._read_cip = crypte.MyCipher(
+                    self._password,
+                    False,
+                    self._iv_read,
+                )
+            elif self._encryption == AES:
+                self._read_cip = crypte.AesCipher(
+                    self._password,
+                    False,
+                    self._iv_read,
+                )
+            else:
+                raise ValueError("we don't support this encryption")
         block = self._fh.read(block_size)
-        if block:
+        if len(block) > len(self._iv_read):
             return self._read_cip.update(block)
         elif not self._did_final_read:
             self._did_final_read = True
-            return self._read_cip.doFinal()
-        return block
+            return self._read_cip.doFinal(block)
+        return ''
+
 
     def write(self, block):
         if self._write_cip is None:
-            self._write_cip = crypte.MyCipher(
-                self._password,
-                True,
-            )
+            len_en = len(self._encryption)
+            if len_en < 16:
+                len_en_str = '0%s' % str(hex(len_en))[2]
+            else:
+                len_en_str = str(hex(len_en))[2:4]
+            if self._encryption == MY_ENCRYPTION:
+                self._write_cip = crypte.MyCipher(
+                    self._password,
+                    True,
+                )
+            elif self._encryption == AES:
+                self._write_cip = crypte.AesCipher(
+                    self._password,
+                    True,
+                )
+            else:
+                raise ValueError("this program doesn't this encryption")
+            self._fh.write('%s%s' % (len_en_str , self._encryption))
             if self._write_cip.iv_lenght < 16:
                 len_iv_str = '0%s' % str(hex(self._write_cip.iv_lenght))[2]
             else:
