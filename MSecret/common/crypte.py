@@ -65,7 +65,10 @@ class MyCipher(object):
             ).hexdigest()[-self._64bitstruct.size:]
         )[0]
         if iv is None:
-            self._iv = os.urandom(self._64bitstruct.size)
+            if encrypt:
+                self._iv = os.urandom(self._64bitstruct.size)
+            else:
+                raise ValueError("Can't decrypt data without the iv.")
         else:
             if not len(iv) == self._64bitstruct.size:
                 raise WrongIV()
@@ -94,13 +97,9 @@ class MyCipher(object):
             if len(self._tail) == self._64bitstruct.size:
                 tmp, self._tail = self._update(self._tail)
                 answer += tmp
-            tmp = self._64bitstruct.size - len(self._tail)
-            if tmp < 16:
-                tmp = '0%s' % hex(self._64bitstruct.size - len(self._tail))[2]
-            else:
-                tmp = hex(self._64bitstruct.size - len(self._tail))[2:4]
+            tmp = hex(self._64bitstruct.size - len(self._tail) - 1)[2]
             padding = self._tail + os.urandom(
-                self._64bitstruct.size - 2 - len(
+                self._64bitstruct.size - 1 - len(
                     self._tail,
                 ),
             ) + '%s' % tmp
@@ -109,7 +108,7 @@ class MyCipher(object):
             if not len(self._tail) == self._64bitstruct.size:
                 raise WrongDataOrProblemWithEncryption()
             padding = self._update(self._tail)[0]
-            answer += padding[:-int(padding[-2:])]
+            answer += padding[:-int(padding[-1], 16) - 1]
         return answer
 
 
@@ -132,7 +131,6 @@ class AesCipher(object):
         if iv is None:
             self._iv = os.urandom(self._128bit)
         else:
-            print iv
             if not len(iv) == self._128bit:
                 raise WrongIV()
             self._iv = iv
@@ -164,13 +162,9 @@ class AesCipher(object):
             if len(self._tail) == self._128bit:
                 answer += self._aes.encrypt(self._tail)
                 self._tail = ''
-            tmp = self._128bit - len(self._tail)
-            if tmp < 16:
-                tmp = '0%s' % hex(self._128bit - len(self._tail))[2]
-            else:
-                tmp = hex(self._128bit - len(self._tail))[2:4]
+            tmp = hex(self._128bit - len(self._tail) - 1)[2]
             padding = self._tail + os.urandom(
-                self._128bit - 2 - len(
+                self._128bit - 1 - len(
                     self._tail,
                 ),
             ) + '%s' % tmp
@@ -179,6 +173,6 @@ class AesCipher(object):
             if not len(self._tail) == self._128bit:
                 raise WrongDataOrProblemWithEncryption()
             padding = self._aes.decrypt(self._tail)
-            answer += padding[:-int(padding[-2:], 16)]
+            answer += padding[:-int(padding[-1], 16) - 1]
         return answer
 

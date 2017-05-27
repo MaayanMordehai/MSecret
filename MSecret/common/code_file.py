@@ -21,11 +21,6 @@ class CodeFile(object):
     def open(self, read_or_write):
         if read_or_write == 'r':
             self._fh = open(self._file_name, 'rb')
-        elif read_or_write == 'w':
-            self._fh = open(self._file_name, 'w')
-
-    def read(self, block_size):
-        if self._iv_read is None:
             self._encryption = self._fh.read(int(self._fh.read(2), 16))
             self._iv_read = self._fh.read(int(self._fh.read(2), 16))
             if self._encryption == MY_ENCRYPTION:
@@ -42,17 +37,8 @@ class CodeFile(object):
                 )
             else:
                 raise ValueError("we don't support this encryption")
-        block = self._fh.read(block_size)
-        if len(block) > len(self._iv_read):
-            return self._read_cip.update(block)
-        elif not self._did_final_read:
-            self._did_final_read = True
-            return self._read_cip.doFinal(block)
-        return ''
-
-
-    def write(self, block):
-        if self._write_cip is None:
+        elif read_or_write == 'w':
+            self._fh = open(self._file_name, 'w')
             len_en = len(self._encryption)
             if len_en < 16:
                 len_en_str = '0%s' % str(hex(len_en))[2]
@@ -76,6 +62,18 @@ class CodeFile(object):
             else:
                 len_iv_str = str(hex(self._write_cip.iv_lenght))[2:4]
             self._fh.write('%s%s' % (len_iv_str, self._write_cip.iv))
+
+    def read(self, block_size):
+        block = self._fh.read(block_size)
+        if len(block) > len(self._iv_read):
+            return self._read_cip.update(block)
+        elif not self._did_final_read:
+            self._did_final_read = True
+            return self._read_cip.doFinal(block)
+        return ''
+
+
+    def write(self, block):
         self._fh.write(self._write_cip.update(block))
 
     def close(self):

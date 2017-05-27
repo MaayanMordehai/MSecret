@@ -1,5 +1,10 @@
 
 import wx
+import os
+
+
+ENCRYPTIONS = ['AES', 'MSecret']
+YES_NO = {'yes': True, 'no': False}
 
 
 class FrameForPassword(wx.Frame):
@@ -8,7 +13,7 @@ class FrameForPassword(wx.Frame):
     user will write what is the password
     '''
 
-    def __init__(self, parent, save, file_name):
+    def __init__(self, parent, save, file_name, encry, dir):
         self._save = save
 
         wx.Frame.__init__(
@@ -40,7 +45,23 @@ class FrameForPassword(wx.Frame):
             size=(140, -1),
         )
         self._password = ""
-        self._file = ""
+
+        if encry:
+            self._rbox0 = wx.RadioBox(
+                self._panel,
+                label = 'encryption',
+                choices = ENCRYPTIONS,
+                majorDimension = 1,
+                style = wx.RA_SPECIFY_ROWS
+            )
+        if dir:
+            self._rbox1 = wx.RadioBox(
+                self._panel,
+                label = 'recursive?',
+                choices = sorted(YES_NO.keys()),
+                majorDimension = 1,
+                style = wx.RA_SPECIFY_ROWS
+            )
 
         # Set sizer for the frame, so we can change frame size to match widgets
         self._windowSizer = wx.BoxSizer()
@@ -69,6 +90,18 @@ class FrameForPassword(wx.Frame):
             self._problom,
             (0, 0),
         )
+        if encry:
+            self._sizer.Add(
+                self._rbox0,
+                (2, 0),
+                flag=wx.EXPAND,
+            )
+        if dir:
+            self._sizer.Add(
+                self._rbox1,
+                (3, 0),
+                flag=wx.EXPAND,
+            )
 
         # Set simple sizer for a nice border
         self._border = wx.BoxSizer()
@@ -89,31 +122,61 @@ class FrameForPassword(wx.Frame):
             wx.EVT_BUTTON,
             self.button_result,
         )
+        if encry:
+            self._rbox0.Bind(wx.EVT_RADIOBOX, self.radio0)
+        if dir:
+            self._rbox1.Bind(wx.EVT_RADIOBOX, self.radio1)
+
+    def radio1(self, e):
+        self._save.recursive = sorted(YES_NO.keys())[self._rbox1.GetSelection()]
+
+    def radio0(self, e):
+        self._save.encryption = ENCRYPTIONS[self._rbox0.GetSelection()]
 
     def button_result(self, e):
-        self._save.set_password(self._editpassword.GetValue())
+        self._save.password = self._editpassword.GetValue()
         self.Destroy()
 
 
 class Save(object):
     def __init__(self):
         self._password = ''
+        self._enc = ''
+        self._recursive = None
 
-    def get_password(self):
+    @property
+    def recursive(self):
+        return self._recursive
+
+    @recursive.setter
+    def recursive(self, re):
+        self._recursive = re
+
+    @property
+    def password(self):
         return self._password
 
-    def set_password(self, password):
+    @password.setter
+    def password(self, password):
         self._password = password
 
+    @property
+    def encryption(self):
+        return self._enc
 
-def Show_Frame(file_name):
+    @encryption.setter
+    def encryption(self, e):
+        self._enc = e
+
+
+def Show_Frame(file_name, enc):
     ''' showing frame and returning file name and password
     that the user wrote '''
     s = Save()
     app = wx.App(False)
-    frame = FrameForPassword(None, s, file_name)
+    dir = os.path.isdir(file_name)
+    frame = FrameForPassword(None, s, file_name, enc, dir)
     frame.Show()
     app.MainLoop()
-    print s.get_password()
-    return s.get_password()
+    return s.password, s.encryption, s.recursive
 

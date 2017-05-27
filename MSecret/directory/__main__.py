@@ -135,7 +135,7 @@ class NameAndPassword(wx.Frame):
         self._rbox.Bind(wx.EVT_RADIOBOX,self.onRadioBox)
 
     def onRadioBox(self, e):
-        self._save.encryption = e.GetEventObject()
+        self._save.encryption = ENCRYPTIONS[self._rbox.GetSelection()]
 
     def edit_dir_button(self, e):
         dir = self._editfile.GetValue()

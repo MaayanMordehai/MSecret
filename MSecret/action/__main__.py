@@ -46,7 +46,7 @@ def parse_args(commands):
     )
     parser.add_argument(
         '--recursive',
-        default=sorted(yes_no.keys())[1],
+        default=sorted(yes_no.keys())[0],
         type=str,
         choices=sorted(yes_no.keys()),
         help='yes if you want to do the command to dirs inside dirs?',
@@ -76,7 +76,7 @@ def parse_args(commands):
 
 def encrypt(password, src, dst, delete, recur, enc):
     if password is None:
-        password = frame.Show_Frame(src)
+        password, enc, recur = frame.Show_Frame(src, True)
     if dst is None:
         dst = '%s%s' % (src, ENCRYPTED_END)
     encrypt_dir_or_file(
@@ -91,7 +91,7 @@ def encrypt(password, src, dst, delete, recur, enc):
 
 def decrypt(password, src, dst, delete, recur):
     if password is None:
-        password = frame.Show_Frame(src)
+        password, enc, recur = frame.Show_Frame(src, False)
     if dst is None:
         dst = without_encrypted_ending(src)
     decrypt_dir_or_file(
