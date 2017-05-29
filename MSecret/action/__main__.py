@@ -1,3 +1,8 @@
+#
+## @package MSecret.__main__
+## @file __main__.py Implementation of @ref MSecret.__main__
+#
+
 
 import argparse
 import os
@@ -8,11 +13,17 @@ from ..common import frame
 from ..common import delete
 
 
+## ENCRYPTED_END of encryptions
 ENCRYPTED_END = '.MSecret'
+## BLOCK_SIZE for read and write to\from file
 BLOCK_SIZE = 1024
+## optional ENCRYPTIONS
 ENCRYPTIONS = ['AES', 'MSecret']
 
 
+## geting arguments
+# @param commands (dictinary) the commands possible : the function
+#
 def parse_args(commands):
     """Parse program arguments."""
 
@@ -53,7 +64,7 @@ def parse_args(commands):
     )
     parser.add_argument(
         '--encryption',
-        default=ENCRYPTIONS[1],
+        default=ENCRYPTIONS[0],
         type=str,
         choices=ENCRYPTIONS,
         help='which encryption???',
@@ -74,35 +85,57 @@ def parse_args(commands):
     return args
 
 
+## encrypt the file
+# @param password (str) password
+# @param src (str) source file name
+# @param dst (str) destination file name
+# @param delete (bool) delete the file\s?
+# @param password (bool) recursive(if dir)?
+# @param enc (str) the encryption
+#
 def encrypt(password, src, dst, delete, recur, enc):
     if password is None:
-        password, enc, recur = frame.Show_Frame(src, True)
-    if dst is None:
-        dst = '%s%s' % (src, ENCRYPTED_END)
-    encrypt_dir_or_file(
-        password,
-        src,
-        dst,
-        recur,
-        delete,
-        enc,
-    )
+        password, enc, recur, exit = frame.Show_Frame(src, True)
+    if not exit:
+        if dst is None:
+            dst = '%s%s' % (src, ENCRYPTED_END)
+        encrypt_dir_or_file(
+            password,
+            src,
+            dst,
+            recur,
+            delete,
+            enc,
+        )
 
 
+## decrypt the file
+# @param password (str) password
+# @param src (str) source file name
+# @param dst (str) destination file name
+# @param delete (bool) delete the file\s?
+# @param password (bool) recursive(if dir)?
+# @param enc (str) the encryption
+#
 def decrypt(password, src, dst, delete, recur):
     if password is None:
-        password, enc, recur = frame.Show_Frame(src, False)
-    if dst is None:
-        dst = without_encrypted_ending(src)
-    decrypt_dir_or_file(
-        password,
-        src,
-        dst,
-        recur,
-        delete,
-    )
+        password, enc, recur, exit = frame.Show_Frame(src, False)
+    if not exit:
+        if dst is None:
+            dst = without_encrypted_ending(src)
+        decrypt_dir_or_file(
+            password,
+            src,
+            dst,
+            recur,
+            delete,
+        )
 
 
+## write file data into code_file
+# @param codefile (CodeFile object)
+# @param first_file (str) source file name
+#
 def encrypt_file(first_file, codefile):
     with open(first_file, 'rb') as fh:
         with code_file.MyOpen(codefile, 'w') as cf:
@@ -113,6 +146,14 @@ def encrypt_file(first_file, codefile):
                 cf.write(tmp)
 
 
+## encrypt a file\directory
+# @param password (str) password
+# @param src (str) source file name
+# @param dst (str) destination file name
+# @param delete (bool) delete the file\s?
+# @param password (bool) recursive(if dir)?
+# @param enc (str) the encryption
+#
 def encrypt_dir_or_file(password, src, dst, recursive, delet, enc):
     if os.path.isdir(src):
         if not os.path.exists(dst):
@@ -154,6 +195,10 @@ def encrypt_dir_or_file(password, src, dst, recursive, delet, enc):
             delete.delete_file_properly(src)
 
 
+## read code_file data to file
+# @param codefile (CodeFile object)
+# @param file_name (str) source file name
+#
 def decrypt_file(codefile, file_name):
     with code_file.MyOpen(codefile, 'r') as cf:
         with open(file_name, 'w') as fh:
@@ -164,6 +209,13 @@ def decrypt_file(codefile, file_name):
                 fh.write(text)
 
 
+## decrypt a file\directory
+# @param password (str) password
+# @param src (str) source file name
+# @param dst (str) destination file name
+# @param delete (bool) delete the file\s?
+# @param password (bool) recursive(if dir)?
+#
 def decrypt_dir_or_file(password, src, dst, recursive, delet):
     if os.path.isdir(src):
         if not os.path.exists(dst):
@@ -199,34 +251,25 @@ def decrypt_dir_or_file(password, src, dst, recursive, delet):
             delete.delete_file_properly(src)
 
 
+## remove encrypt end
+# @param name (str) file name
+#
 def without_encrypted_ending(name):
     if name[-len(ENCRYPTED_END):] == ENCRYPTED_END:
         return name[:-len(ENCRYPTED_END)]
     return name
 
 
-def delete_file_or_dir_properly(file, recursive):
-    if os.path.isdir(file):
-        for f in os.listdir(file):
-            if os.path.isdir(file):
-                if recursive:
-                    delete_file_or_dir_properly(
-                        os.path.join(file, f),
-                        recursive,
-                    )
-            else:
-                delete.delete_file_properly(os.path.join(file, f))
-        if recursive:
-            os.rmdir(file)
-    else:
-        delete.delete_file_properly(file)
-
-
+## Main implementation.
 def main():
-    commands = {'encrypt': encrypt, 'decrypt': decrypt, 'delete': delete_file_or_dir_properly}
+    commands = {
+        'encrypt': encrypt,
+        'decrypt': decrypt,
+        'delete': delete.delete_file_properly,
+    }
     args = parse_args(commands)
     if args.command == 'delete':
-        commands[args.command](args.src_file, args.recursive)
+        commands[args.command](args.src_file)
     elif args.command == 'decrypt':
         commands[args.command](
             args.passphrase,

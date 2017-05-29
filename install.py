@@ -1,8 +1,15 @@
+#
+## @package MSecret.install install module.
+## @file install.py Implementation of @ref MSecret.install
+#
+
+
 import wx
 import os
 import _winreg
 
 
+## descryption for the installion frame
 DESCRIPTION = """MSecret is an encryption program for windows.
 Features include the ability to encrypt with a password
 (to <filename>.MSecret) and delete safely any file,
@@ -10,20 +17,47 @@ decrypt '.MSecret' files. also the program inclode special
 state in which the user creates a directory with a password,
 all the files and the file names are encrypted and the acsses
 to the decrypted files and file names is from the program.
+
+
+PLEASE RESTART YOUR COMPUTER AFTER PRESSING INSTALL! :)
 """
+## environment varibles path in registry
 ENVIRONMENT_PATH = "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+## path for directory encryption in registry
+DIRECTORY_PATH_EN = "Directory\shell\Encrypt\command"
+## path for directory decryption in registry
+DIRECTORY_PATH_DEC = "Directory\shell\Decrypt\command"
+## path for file encryption in registry
 ENCRYPT_PATH = "*\shell\Encrypt\command"
+## running encryption in registry
 RUN_ENCRYPT = "python -m MSecret.action --command encrypt --src-file %1"
+## path for file decryption in registry
 DECRYPT_PATH = "MSecretfile\shell\Decrypt\command"
+## file encrypted ending
 DECRYPT_ENDING = '.MSecret'
+## file encrypted ending handling in registry
 DECRYPT_SEND_TO = 'MSecretfile'
+## running decryption in registry
 RUN_DECRYPT = "python -m MSecret.action --command decrypt --src-file %1"
+## path for delete (files) in registry
 DELETE_PATH = "*\\shell\Special Delete\command"
+## running delete in registry
 RUN_DELETE = "python -m MSecret.action --command delete --src-file %1"
+## PYTHONPATH
 PYTHONPATH = "PYTHONPATH"
+## path for desktop in registry 
+NO_FILES_RIGHT_CLICK = "DesktopBackground\shell\Directory Mode\command"
+## running directory mode in registry
+DIRECTORY_MODE = "python -m MSecret.directory"
 
 
+## Installation.
+#
+# creates installion frame and handling installion
+#
 class Installation(wx.Frame):
+
+    ## Constructor
     def __init__(self):
 
         wx.Frame.__init__(
@@ -116,6 +150,11 @@ class Installation(wx.Frame):
         )
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
+    ## installing MSecret
+    # @param event (event) event.
+    #
+    # will be applied only if button install pressed
+    #
     def install(self, event):
         path = os.path.realpath(__file__)
         dir = self._dup_slash(os.path.dirname(path))
@@ -131,7 +170,7 @@ class Installation(wx.Frame):
 
             except WindowsError:
                 registry_key = _winreg.CreateKey(
-                    _winreg.HKEY_CURRENT_USER,
+                    _winreg.HKEY_LOCAL_MACHINE,
                     ENVIRONMENT_PATH,
                 )
 
@@ -139,13 +178,13 @@ class Installation(wx.Frame):
                 value, _ = _winreg.QueryValueEx(registry_key, PYTHONPATH)
                 dir = "%s;%s" % (value, dir)
             except WindowsError:
-                print "there is not PYTHONPATH varible yet."
+                pass #there is not PYTHONPATH varible yet.
 
             _winreg.SetValueEx(
                 registry_key,
                 PYTHONPATH,
                 0,
-                _winreg.REG_SZ,
+                _winreg.REG_EXPAND_SZ,
                 dir,
             )
             _winreg.CloseKey(registry_key)
@@ -154,6 +193,18 @@ class Installation(wx.Frame):
                 ENCRYPT_PATH,
                 _winreg.REG_SZ,
                 RUN_ENCRYPT,
+            )
+            _winreg.SetValue(
+                _winreg.HKEY_CLASSES_ROOT,
+                DIRECTORY_PATH_EN,
+                _winreg.REG_SZ,
+                RUN_ENCRYPT,
+            )
+            _winreg.SetValue(
+                _winreg.HKEY_CLASSES_ROOT,
+                DIRECTORY_PATH_DEC,
+                _winreg.REG_SZ,
+                RUN_DECRYPT,
             )
             _winreg.SetValue(
                 _winreg.HKEY_CLASSES_ROOT,
@@ -173,6 +224,12 @@ class Installation(wx.Frame):
                 _winreg.REG_SZ,
                 RUN_DELETE,
             )
+            _winreg.SetValue(
+                _winreg.HKEY_CLASSES_ROOT,
+                NO_FILES_RIGHT_CLICK,
+                _winreg.REG_SZ,
+                DIRECTORY_MODE,
+            )
         except:
             wx.MessageBox(
                 "sorry, can't install",
@@ -182,6 +239,9 @@ class Installation(wx.Frame):
             raise
         self.Destroy()
 
+    ## duplicate \.
+    # @param string (string) string.
+    #
     def _dup_slash(self, string):
         count = 0
         for ch in string:
@@ -190,10 +250,16 @@ class Installation(wx.Frame):
             count += 1
         return string
 
+    ## exiting
+    #@param event (event) event
+    #
+    #will be applied only if exit was pressed
+    #
     def OnExit(self, event):
         self.Destroy()
 
 
+## Main implementation.
 def main():
     app = wx.App(False)
     frame = Installation()

@@ -1,14 +1,28 @@
+#
+## @package MSecret.delete delete file safe moudle.
+## @file delete.py Implementation of @ref MSecret.delete
+#
+
+
 import os
 import random
 import struct
 
 
+## block_size of write to file
 BLOCK_SIZE = 1024
+## turning str to binary with BITSTRUCT
 BITSTRUCT = struct.Struct('B')
+## first write to all file
 FIRST_WRITE = BITSTRUCT.pack(0)
+## second write to all file
 SECOND_WRITE = BITSTRUCT.pack(0xff)
 
 
+## delete file safely
+# @param file (str) file name to delete
+# @param block_size (int) block_size of write to file
+#
 def delete_file_properly(file, block_size=BLOCK_SIZE):
     ''' len_file - the length of the data that is written in the file.
     file - the name of the file we want to encrypt
@@ -45,6 +59,12 @@ def delete_file_properly(file, block_size=BLOCK_SIZE):
     os.remove(file)
 
 
+## write to all file
+# @param fh (file handeling object) file handeling
+# @param what_to_write (int) what to write to all file
+# @param left_to_write (int) how much left to write
+# @param block_size (int) block size of write to file
+#
 def write_all_file(fh, what_to_write, left_to_write, block_size=BLOCK_SIZE):
     fh.seek(0, 0)
     while left_to_write > 0:

@@ -6,12 +6,14 @@ import _winreg
 QUESTION = "Are you sure you want to UNINSTALL?"
 ENVIRONMENT_PATH = "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 PATH_ALL_FILES = "*\shell"
-PATH_MSECRET_FILE = ""
+PATH_ALL_DIRS = "Directory\shell"
 ENCRYPT = ("Encrypt", "command")
 DELETE = ("Special Delete", "command")
 PYTHONPATH = "PYTHONPATH"
 DECRYPT = ("MSecretfile", "shell", "Decrypt", "command")
 DECRYPT_ENDING = '.MSecret'
+NO_FILES_RIGHT_CLICK = "DesktopBackground\shell"
+DIRECTORY_MODE = ("Directory Mode", "command")
 
 
 def Uninstall(parent, question, caption='Yes or no?'):
@@ -59,9 +61,47 @@ def main():
             except WindowsError:
                 print "%s doesn't exist in regedit" % DELETE[0]
 
+            registry_key = _winreg.OpenKey(
+                _winreg.HKEY_CLASSES_ROOT,
+                PATH_ALL_DIRS,
+                0,
+                _winreg.KEY_ALL_ACCESS,
+            )
+            try:
+                _winreg.DeleteKey(registry_key, "%s\%s" % (ENCRYPT[0], ENCRYPT[1]))
+            except WindowsError:
+                print "%s\%s doesn't exist in regedit" % (ENCRYPT[0], ENCRYPT[1])
+            try:
+                _winreg.DeleteKey(registry_key, ENCRYPT[0])
+            except WindowsError:
+                print "%s doesn't exist in regedit" % ENCRYPT[0]
+            try:
+                _winreg.DeleteKey(registry_key, "%s\%s" % (DECRYPT[2], DECRYPT[3]))
+            except WindowsError:
+                print "%s\%s doesn't exist in regedit" % (DECRYPT[2], DECRYPT[3])
+            try:
+                _winreg.DeleteKey(registry_key, DECRYPT[2])
+            except WindowsError:
+                print "%s doesn't exist in regedit" % DECRYPT[2]
+
+            desktop_key = _winreg.OpenKey(
+                _winreg.HKEY_CLASSES_ROOT,
+                NO_FILES_RIGHT_CLICK,
+                0,
+                _winreg.KEY_ALL_ACCESS,
+            )
+            try:
+                _winreg.DeleteKey(registry_key, "%s\%s" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1]))
+            except WindowsError:
+                print "%s\%s doesn't exist in regedit" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1])
+            try:
+                _winreg.DeleteKey(registry_key, DIRECTORY_MODE[0])
+            except WindowsError:
+                print "%s doesn't exist in regedit" % ENCRYPT[0]
+            
             decrypt_key = _winreg.OpenKey(
                 _winreg.HKEY_CLASSES_ROOT,
-                PATH_MSECRET_FILE,
+                "",
                 0,
                 _winreg.KEY_ALL_ACCESS,
             )
@@ -152,6 +192,7 @@ def main():
                     _winreg.DeleteValue(pythonpath_key, PYTHONPATH)
             except WindowsError:
                 print "there is not PYTHONPATH varible"
+            print "uninstall complited"
         except:
             wx.MessageBox(
                 "sorry, can't uninstall",

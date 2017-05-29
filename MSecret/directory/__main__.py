@@ -1,3 +1,8 @@
+#
+## @package MSecret.__main__
+## @file __main__.py Implementation of @ref MSecret.__main__
+#
+
 
 import base64
 import os
@@ -7,17 +12,28 @@ import wx.lib.dialogs
 from ..common import delete
 from ..common import crypte
 from ..common import code_file
+from ..common import save
 
 
+## BLOCK_SIZE for read and write to\from file
 BLOCK_SIZE = 1024
+## only legal file end
 FILE_END = '.txt'
+## LIMIT_CHARACTERS on encrypt file name
 LIMIT_CHARACTERS = 60
+## encryption
 ENC = 'MSecret'
+## optional ENCRYPTIONS
 ENCRYPTIONS = ['AES', 'MSecret']
 
 
+## user interface object
+#
+# Frame to get information
+#
 class NameAndPassword(wx.Frame):
 
+    ## Constructor
     def __init__(self, parent, save):
         self._save = save
 
@@ -27,116 +43,125 @@ class NameAndPassword(wx.Frame):
             title='Enter Directory And Password',
         )
 
-        self._panel = wx.Panel(self)
+        panel = wx.Panel(self)
 
-        self._button = wx.Button(
-            self._panel,
+        button = wx.Button(
+            panel,
             label='create new directory',
         )
 
-        self._button2 = wx.Button(
-            self._panel,
+        button2 = wx.Button(
+            panel,
             label='read or edit directory',
         )
 
-        self._lblfile = wx.StaticText(
-            self._panel,
+        lblfile = wx.StaticText(
+            panel,
             label="directory:",
         )
         self._editfile = wx.TextCtrl(
-            self._panel,
+            panel,
             size=(140, -1),
         )
 
-        self._lblpassword = wx.StaticText(
-            self._panel,
+        lblpassword = wx.StaticText(
+            panel,
             label="password:",
         )
         self._editpassword = wx.TextCtrl(
-            self._panel,
+            panel,
             style=wx.TE_PASSWORD,
             size=(140, -1),
         )
 
         self._rbox = wx.RadioBox(
-            self._panel,
-            label = 'encryption',
-            choices = ENCRYPTIONS,
-            majorDimension = 1,
-            style = wx.RA_SPECIFY_ROWS
+            panel,
+            label='encryption',
+            choices=ENCRYPTIONS,
+            majorDimension=1,
+            style=wx.RA_SPECIFY_ROWS
         )
 
-
         # Set sizer for the frame, so we can change frame size to match widgets
-        self._windowSizer = wx.BoxSizer()
-        self._windowSizer.Add(
-            self._panel,
+        windowSizer = wx.BoxSizer()
+        windowSizer.Add(
+            panel,
             1,
             wx.ALL | wx.EXPAND,
         )
 
         # Set sizer for the panel content)
-        self._sizer = wx.GridBagSizer(6, 6)
-        self._sizer.Add(
-            self._lblfile,
+        sizer = wx.GridBagSizer(6, 6)
+        sizer.Add(
+            lblfile,
             (0, 0),
         )
-        self._sizer.Add(
+        sizer.Add(
             self._editfile,
             (0, 1),
         )
-        self._sizer.Add(
-            self._lblpassword,
+        sizer.Add(
+            lblpassword,
             (1, 0),
         )
-        self._sizer.Add(
+        sizer.Add(
             self._editpassword,
             (1, 1),
         )
-        self._sizer.Add(
-            self._button2,
+        sizer.Add(
+            button2,
             (2, 0),
             flag=wx.EXPAND,
         )
-        self._sizer.Add(
-            self._button,
+        sizer.Add(
+            button,
             (2, 1),
             flag=wx.EXPAND,
         )
-        self._sizer.Add(
+        sizer.Add(
             self._rbox,
             (3, 0),
             flag=wx.EXPAND,
         )
 
-        self._border = wx.BoxSizer()
+        border = wx.BoxSizer()
 
-        self._border.Add(
-            self._sizer,
+        border.Add(
+            sizer,
             1,
             wx.ALL | wx.EXPAND,
             5,
         )
 
         # Use the sizers
-        self._panel.SetSizerAndFit(self._border)
-        self.SetSizerAndFit(self._windowSizer)
+        panel.SetSizerAndFit(border)
+        self.SetSizerAndFit(windowSizer)
 
         # Set event handlers
-        self._button2.Bind(
+        button2.Bind(
             wx.EVT_BUTTON,
             self.edit_dir_button,
         )
-        self._button.Bind(
+        button.Bind(
             wx.EVT_BUTTON,
             self.create_dir_button,
         )
         self.Bind(wx.EVT_CLOSE, self.OnExit)
-        self._rbox.Bind(wx.EVT_RADIOBOX,self.onRadioBox)
+        self._rbox.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
 
+    ## saving radio box information
+    # @param e (event) event
+    #
+    # only if radio box was pressed
+    #
     def onRadioBox(self, e):
         self._save.encryption = ENCRYPTIONS[self._rbox.GetSelection()]
 
+    ## saving password and dir name
+    # @param e (event) event
+    #
+    # only if edit dir button was pressed
+    #
     def edit_dir_button(self, e):
         dir = self._editfile.GetValue()
         if os.path.exists(dir):
@@ -157,6 +182,11 @@ class NameAndPassword(wx.Frame):
                 wx.ICON_ERROR,
             )
 
+    ## saving password and dir name, create dir
+    # @param e (event) event
+    #
+    # only if create dir button was pressed
+    #
     def create_dir_button(self, e):
         try:
             os.makedirs(self._editfile.GetValue())
@@ -170,44 +200,23 @@ class NameAndPassword(wx.Frame):
                 wx.ICON_ERROR,
             )
 
+    ## exit nicely
+    # @param event (event) event
+    #
+    # only if x was pressed
+    #
     def OnExit(self, event):
+        self._save.should_exit = True
         self.Destroy()
 
 
-class Save(object):
-
-    def __init__(self):
-        self._dir_name = None
-        self._password = None
-        self._encryption = None
-
-    @property
-    def dir_name(self):
-        return self._dir_name
-
-    @property
-    def encryption(self):
-        return self._encryption
-
-    @property
-    def password(self):
-        return self._password
-
-    @dir_name.setter
-    def dir_name(self, name):
-        self._dir_name = name
-
-    @encryption.setter
-    def encryption(self, en):
-        self._encryption = en
-
-    @password.setter
-    def password(self, password):
-        self._password = password
-
-
+## user interface object
+#
+# Frame for user access
+#
 class FilesAndOptions(wx.Frame):
 
+    ## Constructor
     def __init__(self, parent, save):
 
         if save.encryption is None:
@@ -290,6 +299,11 @@ class FilesAndOptions(wx.Frame):
         self.Centre()
         self.Maximize(True)
 
+    ## delete file
+    # @param event (event) event
+    #
+    # only if delete button pressed
+    #
     def delete(self, event):
         file_index = self._listbox.GetSelection()
         if file_index != -1:
@@ -304,6 +318,11 @@ class FilesAndOptions(wx.Frame):
             self._list_items.remove(file)
             del self._file_and_encrypted[file]
 
+    ## view file
+    # @param event (event) event
+    #
+    # only if view button pressed
+    #
     def view(self, event):
         sel = self._listbox.GetSelection()
         file_name = self._listbox.GetString(sel)
@@ -311,6 +330,7 @@ class FilesAndOptions(wx.Frame):
             self._save.dir_name,
             self._file_and_encrypted[file_name],
         )
+        print encrypted_file
         c = code_file.CodeFile(encrypted_file, self._save.password)
         msg = get_decrypt_file_data(c)
         dlg = wx.lib.dialogs.ScrolledMessageDialog(
@@ -320,6 +340,11 @@ class FilesAndOptions(wx.Frame):
         )
         dlg.ShowModal()
 
+    ## edit file
+    # @param event (event) event
+    #
+    # only if edit button pressed
+    #
     def edit(self, event):
         sel = self._listbox.GetSelection()
         file_name = self._listbox.GetString(sel)
@@ -335,6 +360,11 @@ class FilesAndOptions(wx.Frame):
         )
         frame.Show()
 
+    ## rename file
+    # @param event (event) event
+    #
+    # only if rename button pressed
+    #
     def rename(self, event):
         sel = self._listbox.GetSelection()
         file = self._listbox.GetString(sel)
@@ -346,36 +376,48 @@ class FilesAndOptions(wx.Frame):
         if renamed != '':
             if not renamed[-len(FILE_END):] == FILE_END:
                 renamed = '%s%s' % (renamed, FILE_END)
-            else:
-                encrypted = encrypt_file_name(renamed, self._save.password, self._save.encryption)
-                self._listbox.Delete(sel)
-                self._listbox.Insert(renamed, sel)
-                os.rename(
-                    os.path.join(
-                        self._save.dir_name,
-                        self._file_and_encrypted[file],
-                    ),
-                    os.path.join(
-                        self._save.dir_name,
-                        encrypted,
-                    ),
-                )
-                index = 0
-                for file1 in self._list_items:
-                    if file1 == file:
-                        break
-                    index += 1
-                self._list_items[index] = renamed
-                del self._file_and_encrypted[file]
-                self._file_and_encrypted[renamed] = encrypted
+            encrypted = encrypt_file_name(
+                renamed,
+                self._save.password,
+                self._save.encryption,
+            )
+            self._listbox.Delete(sel)
+            self._listbox.Insert(renamed, sel)
+            os.rename(
+                os.path.join(
+                    self._save.dir_name,
+                    self._file_and_encrypted[file],
+                ),
+                os.path.join(
+                    self._save.dir_name,
+                    encrypted,
+                ),
+            )
+            index = 0
+            for file1 in self._list_items:
+                if file1 == file:
+                    break
+                index += 1
+            self._list_items[index] = renamed
+            del self._file_and_encrypted[file]
+            self._file_and_encrypted[renamed] = encrypted
 
+    ## create new file
+    # @param event (event) event
+    #
+    # only if new file button pressed
+    #
     def new_file(self, event):
         dig = wx.TextEntryDialog(self, 'Enter file name', 'choose name')
         if dig.ShowModal() == wx.ID_OK:
             name = dig.GetValue().encode('utf-8')
             if not name[-len(FILE_END):] == FILE_END:
                 name = '%s%s' % (name, FILE_END)
-            name_encrypted = encrypt_file_name(name, self._save.password, self._save.encryption)
+            name_encrypted = encrypt_file_name(
+                name,
+                self._save.password,
+                self._save.encryption,
+            )
             if name in self._list_items:
                 wx.MessageBox("File Exsist!", "error", wx.ICON_ERROR)
             else:
@@ -385,7 +427,11 @@ class FilesAndOptions(wx.Frame):
                 )
                 try:
                     open(encrypted, 'w').close()
-                    c = code_file.CodeFile(encrypted, self._save.password, self._save.encryption)
+                    c = code_file.CodeFile(
+                        encrypted,
+                        self._save.password,
+                        self._save.encryption,
+                    )
                     with code_file.MyOpen(c, 'w') as cf:
                         cf.write('')
                     if not os.path.exists(encrypted):
@@ -407,24 +453,37 @@ class FilesAndOptions(wx.Frame):
             self._list_items = [name] + self._list_items
             self._file_and_encrypted[name] = name_encrypted
 
+    ## exit nicely
+    # @param event (event) event
+    #
+    # only if x was pressed
+    #
     def OnExit(self, event):
         self.Destroy()
 
 
 class Edit(wx.Frame):
 
-    def __init__(self, parent, file_name, encrypt_file_full_path, password, enc):
+    ## Constructor
+    def __init__(
+        self,
+        parent,
+        file_name,
+        encrypt_file_full_path,
+        password,
+        enc,
+    ):
         wx.Frame.__init__(
             self,
             parent,
             title='edit secret file %s' % file_name,
         )
         self._encryption = enc
-        self.full_path = encrypt_file_full_path
-        self.password = password
+        self._full_path = encrypt_file_full_path
+        self._password = password
         codefile = code_file.CodeFile(
-            self.full_path,
-            self.password,
+            self._full_path,
+            self._password,
         )
         self.text = wx.TextCtrl(
             self,
@@ -434,36 +493,50 @@ class Edit(wx.Frame):
             ),
             style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER,
         )
-        self.button = wx.Button(self, label="Save")
+        button = wx.Button(self, label="Save")
 
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.text, 1, wx.EXPAND)
-        self.sizer.Add(self.button, 0, wx.EXPAND)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.text, 1, wx.EXPAND)
+        sizer.Add(button, 0, wx.EXPAND)
 
-        self.SetSizer(self.sizer)
-        self.button.Bind(wx.EVT_BUTTON, self.save)
+        self.SetSizer(sizer)
+        button.Bind(wx.EVT_BUTTON, self.save)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
         self.SetAutoLayout(1)
-        self.sizer.Fit(self)
+        sizer.Fit(self)
         self.Show(1)
         self.Maximize(True)
 
+    ## save to code file
+    # @param event (event) event
+    #
+    # only if view button pressed
+    #
     def save(self, event):
         data = self.text.GetValue().encode('utf-8')
+        print 'data: %s' % data
         codefile = code_file.CodeFile(
-            self.full_path,
-            self.password,
+            self._full_path,
+            self._password,
             self._encryption,
         )
         with code_file.MyOpen(codefile, 'w') as cf:
             cf.write(data)
         self.Destroy()
 
+    ## exit nicely
+    # @param event (event) event
+    #
+    # only if x was pressed
+    #
     def OnExit(self, event):
         self.Destroy()
 
 
+## get code file content
+# @param codefile CodeFile
+#
 def get_decrypt_file_data(codefile):
     text = ''
     with code_file.MyOpen(codefile, 'r') as cf:
@@ -475,6 +548,10 @@ def get_decrypt_file_data(codefile):
     return text
 
 
+## encrypt file name
+# @param name (str) file name
+# @param password (str) password
+#
 def encrypt_file_name(name, password, encr):
 
     ''' name - the file (or directory) name.
@@ -511,7 +588,10 @@ def encrypt_file_name(name, password, encr):
         )
     return base64.b32encode(encrypted)
 
-
+## decrypt file name
+# @param name (str) encrypted file name
+# @param password (str) password
+#
 def decrypt_file_name(name, password):
 
     ''' name - the file (or directory) encrypted name.
@@ -540,17 +620,18 @@ def decrypt_file_name(name, password):
     return c.doFinal(e_name[len_iv + 2:])
 
 
+## Main implementation
 def main():
-    saver = Save()
+    saver = save.Save()
     app = wx.App(False)
     frame = NameAndPassword(None, saver)
     frame.Show()
     app.MainLoop()
-
-    app2 = wx.App(False)
-    frame2 = FilesAndOptions(None, saver)
-    frame2.Show()
-    app2.MainLoop()
+    if not saver.should_exit:
+        app2 = wx.App(False)
+        frame2 = FilesAndOptions(None, saver)
+        frame2.Show()
+        app2.MainLoop()
 
 
 if __name__ == '__main__':
