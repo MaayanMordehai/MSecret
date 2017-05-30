@@ -12,7 +12,7 @@ DELETE = ("Special Delete", "command")
 PYTHONPATH = "PYTHONPATH"
 DECRYPT = ("MSecretfile", "shell", "Decrypt", "command")
 DECRYPT_ENDING = '.MSecret'
-NO_FILES_RIGHT_CLICK = "DesktopBackground\shell"
+NO_FILES_RIGHT_CLICK = "DesktopBackground\Shell"
 DIRECTORY_MODE = ("Directory Mode", "command")
 
 
@@ -27,9 +27,9 @@ def dup_slash(string):
     count = 0
     for ch in string:
         if ch == '\\':
-            string = "%s\%s" % (string[:count], string[count:])
+            stri = "%s\%s" % (string[:count], string[count:])
         count += 1
-    return string
+    return stri
 
 
 def main():
