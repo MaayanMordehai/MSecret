@@ -141,7 +141,7 @@ class AesCipher(object):
     ## Retrive iv lenght
     @property
     def iv_lenght(self):
-        return self._64bitstruct.size
+        return self._128bit
 
     ## Retrive iv
     @property
