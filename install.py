@@ -30,7 +30,7 @@ DIRECTORY_PATH_DEC = "Directory\shell\Decrypt\command"
 ## path for file encryption in registry
 ENCRYPT_PATH = "*\shell\Encrypt\command"
 ## running encryption in registry
-RUN_ENCRYPT = "python -m MSecret.action --command encrypt --src-file %1"
+RUN_ENCRYPT = "c:\python27\python -m MSecret.action --command encrypt --src-file %1"
 ## path for file decryption in registry
 DECRYPT_PATH = "MSecretfile\shell\Decrypt\command"
 ## file encrypted ending
@@ -38,17 +38,17 @@ DECRYPT_ENDING = '.MSecret'
 ## file encrypted ending handling in registry
 DECRYPT_SEND_TO = 'MSecretfile'
 ## running decryption in registry
-RUN_DECRYPT = "python -m MSecret.action --command decrypt --src-file %1"
+RUN_DECRYPT = "c:\python27\python -m MSecret.action --command decrypt --src-file %1"
 ## path for delete (files) in registry
 DELETE_PATH = "*\\shell\Special Delete\command"
 ## running delete in registry
-RUN_DELETE = "python -m MSecret.action --command delete --src-file %1"
+RUN_DELETE = "c:\python27\python -m MSecret.action --command delete --src-file %1"
 ## PYTHONPATH
 PYTHONPATH = "PYTHONPATH"
 ## path for desktop in registry 
 NO_FILES_RIGHT_CLICK = "DesktopBackground\shell\Directory Mode\command"
 ## running directory mode in registry
-DIRECTORY_MODE = "python -m MSecret.directory"
+DIRECTORY_MODE = "c:\python27\python -m MSecret.directory"
 
 
 ## Installation.
@@ -158,7 +158,6 @@ class Installation(wx.Frame):
     def install(self, event):
         path = os.path.realpath(__file__)
         dir = self._dup_slash(os.path.dirname(path))
-        
         try:
             try:
                 registry_key = _winreg.OpenKey(
