@@ -38,17 +38,17 @@ DECRYPT_ENDING = '.MSecret'
 ## file encrypted ending handling in registry
 DECRYPT_SEND_TO = 'MSecretfile'
 ## running decryption in registry
-RUN_DECRYPT = "c:\python27\python -m MSecret.action --command decrypt --src-file %1"
+RUN_DECRYPT = "c:\\python27\\python -m MSecret.action --command decrypt --src-file %1"
 ## path for delete (files) in registry
 DELETE_PATH = "*\\shell\Special Delete\command"
 ## running delete in registry
-RUN_DELETE = "c:\python27\python -m MSecret.action --command delete --src-file %1"
+RUN_DELETE = "c:\\python27\\python -m MSecret.action --command delete --src-file %1"
 ## PYTHONPATH
 PYTHONPATH = "PYTHONPATH"
 ## path for desktop in registry 
 NO_FILES_RIGHT_CLICK = "DesktopBackground\shell\Directory Mode\command"
 ## running directory mode in registry
-DIRECTORY_MODE = "c:\python27\python -m MSecret.directory"
+DIRECTORY_MODE = "c:\\python27\\python -m MSecret.directory"
 
 
 ## Installation.
@@ -245,9 +245,9 @@ class Installation(wx.Frame):
         count = 0
         for ch in string:
             if ch == '\\':
-                string = "%s\%s" % (string[:count], string[count:])
+                stri = "%s\%s" % (string[:count], string[count:])
             count += 1
-        return string
+        return stri
 
     ## exiting
     #@param event (event) event
