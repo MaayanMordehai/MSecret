@@ -39,12 +39,14 @@ def parse_args(commands):
     parser.add_argument(
         '--src-file',
         required=True,
+        nargs='+',
         type=str,
         help='source file to encrypt or decrypt or delete (command)',
     )
     parser.add_argument(
         '--dst-file',
         default=None,
+        nargs='+',
         type=str,
         help="destination file to write there the encryption or decryption.",
     )
@@ -82,6 +84,9 @@ def parse_args(commands):
     args = parser.parse_args()
     args.delete = yes_no[args.delete]
     args.recursive = yes_no[args.recursive]
+    args.src_file =  ' '.join(args.src_file)
+    if args.dst_file is not None:
+        args.dst_file =  ' '.join(args.dst_file)
     return args
 
 
