@@ -29,7 +29,6 @@ class CodeFile(object):
         self._write_cip = None
         self._did_final_read = False
         self._encryption = enc
-        self.c = 0
 
     ## open encrypted file
     # @param read_or_write (string) open to read or write
@@ -54,7 +53,7 @@ class CodeFile(object):
             else:
                 raise ValueError("we don't support this encryption")
         elif read_or_write == 'w':
-            self._fh = open(self._file_name, 'w')
+            self._fh = open(self._file_name, 'wb')
             len_en = len(self._encryption)
             if len_en < 16:
                 len_en_str = '0%s' % str(hex(len_en))[2]

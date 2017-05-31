@@ -21,8 +21,8 @@ BLOCK_SIZE = 1024
 FILE_END = '.txt'
 ## LIMIT_CHARACTERS on encrypt file name
 LIMIT_CHARACTERS = 60
-## encryption
-ENC = 'MSecret'
+## real file end
+FILE_END_REAL = '.MSecret'
 ## optional ENCRYPTIONS
 ENCRYPTIONS = ['AES', 'MSecret']
 
@@ -330,7 +330,6 @@ class FilesAndOptions(wx.Frame):
             self._save.dir_name,
             self._file_and_encrypted[file_name],
         )
-        print encrypted_file
         c = code_file.CodeFile(encrypted_file, self._save.password)
         msg = get_decrypt_file_data(c)
         dlg = wx.lib.dialogs.ScrolledMessageDialog(
@@ -515,7 +514,6 @@ class Edit(wx.Frame):
     #
     def save(self, event):
         data = self.text.GetValue().encode('utf-8')
-        print 'data: %s' % data
         codefile = code_file.CodeFile(
             self._full_path,
             self._password,
@@ -587,6 +585,7 @@ def encrypt_file_name(name, password, encr):
             wx.ICON_ERROR
         )
     return base64.b32encode(encrypted)
+
 
 ## decrypt file name
 # @param name (str) encrypted file name
