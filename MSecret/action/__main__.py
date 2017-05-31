@@ -206,7 +206,7 @@ def encrypt_dir_or_file(password, src, dst, recursive, delet, enc):
 #
 def decrypt_file(codefile, file_name):
     with code_file.MyOpen(codefile, 'r') as cf:
-        with open(file_name, 'w') as fh:
+        with open(file_name, 'wb') as fh:
             while True:
                 text = cf.read(BLOCK_SIZE)
                 if not text:
