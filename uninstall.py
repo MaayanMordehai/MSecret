@@ -91,11 +91,11 @@ def main():
                 _winreg.KEY_ALL_ACCESS,
             )
             try:
-                _winreg.DeleteKey(registry_key, "%s\%s" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1]))
+                _winreg.DeleteKey(desktop_key, "%s\%s" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1]))
             except WindowsError:
                 print "%s\%s doesn't exist in regedit" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1])
             try:
-                _winreg.DeleteKey(registry_key, DIRECTORY_MODE[0])
+                _winreg.DeleteKey(desktop_key, DIRECTORY_MODE[0])
             except WindowsError:
                 print "%s doesn't exist in regedit" % ENCRYPT[0]
             
