@@ -6,11 +6,13 @@
 
 import argparse
 import os
+import wx
 
 
 from ..common import code_file
 from ..common import frame
 from ..common import delete
+from ..common import save
 
 
 ## ENCRYPTED_END of encryptions
@@ -265,12 +267,29 @@ def without_encrypted_ending(name):
     return name
 
 
+## directory special mode
+# @param dir (str) dir name
+#
+def directory_mode(dir):
+    password, enc, recu, exit = frame.Show_Frame(dir, True, False)
+    if not exit:
+        s = save.Save()
+        s.password = password
+        s.encryption = enc
+        s.dir_name = dir
+        app2 = wx.App(False)
+        frame2 = frame.FilesAndOptions(None, s)
+        frame2.Show()
+        app2.MainLoop()
+
+
 ## Main implementation.
 def main():
     commands = {
         'encrypt': encrypt,
         'decrypt': decrypt,
         'delete': delete.delete_file_properly,
+        'directory': directory_mode,
     }
     args = parse_args(commands)
     if args.command == 'delete':
@@ -283,7 +302,7 @@ def main():
             args.delete,
             args.recursive,
         )
-    else:
+    elif args.command == 'encrypt':
         commands[args.command](
             args.passphrase,
             args.src_file,
@@ -291,6 +310,10 @@ def main():
             args.delete,
             args.recursive,
             args.encryption,
+        )
+    else:
+        commands[args.command](
+            args.src_file
         )
 
 

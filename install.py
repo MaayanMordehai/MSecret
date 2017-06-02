@@ -20,17 +20,21 @@ to the decrypted files and file names is from the program.
 
 
 PLEASE RESTART YOUR COMPUTER AFTER PRESSING INSTALL! :)
+
+created by Maayan Mordehai
 """
 ## environment varibles path in registry
 ENVIRONMENT_PATH = "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 ## path for directory encryption in registry
 DIRECTORY_PATH_EN = "Directory\shell\Encrypt\command"
+## path for directory mode in registry
+DIRECTORY_PATH_MODE = "Directory\shell\Open Directory Mode\command"
 ## path for directory decryption in registry
 DIRECTORY_PATH_DEC = "Directory\shell\Decrypt\command"
 ## path for file encryption in registry
 ENCRYPT_PATH = "*\shell\Encrypt\command"
 ## running encryption in registry
-RUN_ENCRYPT = "c:\python27\python -m MSecret.action --command encrypt --src-file %1"
+RUN_ENCRYPT = "c:\python27\pythonw -m MSecret.action --command encrypt --src-file %1"
 ## path for file decryption in registry
 DECRYPT_PATH = "MSecretfile\shell\Decrypt\command"
 ## file encrypted ending
@@ -38,17 +42,15 @@ DECRYPT_ENDING = '.MSecret'
 ## file encrypted ending handling in registry
 DECRYPT_SEND_TO = 'MSecretfile'
 ## running decryption in registry
-RUN_DECRYPT = "c:\\python27\\python -m MSecret.action --command decrypt --src-file %1"
+RUN_DECRYPT = "c:\\python27\\pythonw -m MSecret.action --command decrypt --src-file %1"
 ## path for delete (files) in registry
 DELETE_PATH = "*\\shell\Special Delete\command"
 ## running delete in registry
-RUN_DELETE = "c:\\python27\\python -m MSecret.action --command delete --src-file %1"
+RUN_DELETE = "c:\\python27\\pythonw -m MSecret.action --command delete --src-file %1"
 ## PYTHONPATH
 PYTHONPATH = "PYTHONPATH"
-## path for desktop in registry 
-NO_FILES_RIGHT_CLICK = "DesktopBackground\shell\Directory Mode\command"
-## running directory mode in registry
-DIRECTORY_MODE = "c:\\python27\\python -m MSecret.directory"
+## running directory mode in registry dir
+RUN_DIR_WITH_DIR = "c:\\python27\\pythonw -m MSecret.action --command directory --src-file %1" 
 
 
 ## Installation.
@@ -201,6 +203,12 @@ class Installation(wx.Frame):
             )
             _winreg.SetValue(
                 _winreg.HKEY_CLASSES_ROOT,
+                DIRECTORY_PATH_MODE,
+                _winreg.REG_SZ,
+                RUN_DIR_WITH_DIR,
+            )
+            _winreg.SetValue(
+                _winreg.HKEY_CLASSES_ROOT,
                 DIRECTORY_PATH_DEC,
                 _winreg.REG_SZ,
                 RUN_DECRYPT,
@@ -222,12 +230,6 @@ class Installation(wx.Frame):
                 DELETE_PATH,
                 _winreg.REG_SZ,
                 RUN_DELETE,
-            )
-            _winreg.SetValue(
-                _winreg.HKEY_CLASSES_ROOT,
-                NO_FILES_RIGHT_CLICK,
-                _winreg.REG_SZ,
-                DIRECTORY_MODE,
             )
         except:
             wx.MessageBox(

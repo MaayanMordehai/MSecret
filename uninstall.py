@@ -3,19 +3,29 @@ import os
 import _winreg
 
 
+## question for uninstall dialog
 QUESTION = "Are you sure you want to UNINSTALL?"
+## enviroment varibles path to update pythonpath
 ENVIRONMENT_PATH = "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+## path of all files
 PATH_ALL_FILES = "*\shell"
+## path of all directories
 PATH_ALL_DIRS = "Directory\shell"
+## encrypt key
 ENCRYPT = ("Encrypt", "command")
+## delete key
 DELETE = ("Special Delete", "command")
+## pythonpath
 PYTHONPATH = "PYTHONPATH"
+## decrypt_key
 DECRYPT = ("MSecretfile", "shell", "Decrypt", "command")
+## decrypt ending
 DECRYPT_ENDING = '.MSecret'
-NO_FILES_RIGHT_CLICK = "DesktopBackground\Shell"
+## directory mode
 DIRECTORY_MODE = ("Directory Mode", "command")
 
 
+## uninstall dialog
 def Uninstall(parent, question, caption='Yes or no?'):
     dlg = wx.MessageDialog(parent, question, caption, wx.YES_NO | wx.ICON_QUESTION)
     result = dlg.ShowModal() == wx.ID_YES
@@ -23,6 +33,7 @@ def Uninstall(parent, question, caption='Yes or no?'):
     return result
 
 
+## double the slash \ in a string
 def dup_slash(string):
     count = 0
     for ch in string:
@@ -32,6 +43,7 @@ def dup_slash(string):
     return stri
 
 
+## Main implementation.
 def main():
     app = wx.App()
     uninstall = Uninstall(None, QUESTION)
@@ -83,21 +95,14 @@ def main():
                 _winreg.DeleteKey(registry_key, DECRYPT[2])
             except WindowsError:
                 print "%s doesn't exist in regedit" % DECRYPT[2]
-
-            desktop_key = _winreg.OpenKey(
-                _winreg.HKEY_CLASSES_ROOT,
-                NO_FILES_RIGHT_CLICK,
-                0,
-                _winreg.KEY_ALL_ACCESS,
-            )
             try:
-                _winreg.DeleteKey(desktop_key, "%s\%s" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1]))
+                _winreg.DeleteKey(registry_key, "%s\%s" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1]))
             except WindowsError:
                 print "%s\%s doesn't exist in regedit" % (DIRECTORY_MODE[0], DIRECTORY_MODE[1])
             try:
-                _winreg.DeleteKey(desktop_key, DIRECTORY_MODE[0])
+                _winreg.DeleteKey(registry_key, DIRECTORY_MODE[0])
             except WindowsError:
-                print "%s doesn't exist in regedit" % ENCRYPT[0]
+                print "%s doesn't exist in regedit" % DIRECTORY_MODE[0]
             
             decrypt_key = _winreg.OpenKey(
                 _winreg.HKEY_CLASSES_ROOT,
